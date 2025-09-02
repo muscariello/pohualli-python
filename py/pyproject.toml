@@ -1,0 +1,18 @@
+[project]
+name = "pohualli"
+version = "0.1.0"
+requires-python = ">=3.10"
+description = "Python port (in progress) of the Turbo Pascal Pohualli calendrical utility"
+authors = [ { name = "Port Maintainers" } ]
+license = { text = "MIT" }
+
+[project.optional-dependencies]
+dev = ["pytest"]
+web = ["fastapi","uvicorn","jinja2"]
+
+[project.scripts]
+pohualli = "pohualli.cli:main"
+
+[build-system]
+requires = ["setuptools>=67"]
+build-backend = "setuptools.build_meta"

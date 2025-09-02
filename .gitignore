@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+.Python
+.venv/
+env/
+venv/
+build/
+dist/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+
+# VSCode
+.vscode/
+
+# Docker
+*.tar
+
+# Misc
+*.log
+*.tmp
+*.DS_Store

@@ -1,0 +1,13 @@
+version: "3.9"
+services:
+  pohualli:
+    build: .
+    working_dir: /app/py
+    ports:
+      - "8000:8000"
+    environment:
+      # Allow overriding default New Era or other future settings via env
+      # (not yet wired; placeholder for extension)
+      POHUALLI_NEW_ERA: ""
+    command: ["uvicorn", "pohualli.webapp:app", "--host", "0.0.0.0", "--port", "8000"]
+    restart: unless-stopped
