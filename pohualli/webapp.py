@@ -57,40 +57,70 @@ async def health():
     return {'status':'ok'}
 
 @app.get('/', response_class=HTMLResponse)
-async def home(request: Request, jdn: int | None = None, new_era: int | None = None,
-               ybm: int | None = None, ybd: int | None = None, preset: str | None = None,
-               tz_off: int | None = None, tzn_off: int | None = None, haab_off: int | None = None,
-               g_off: int | None = None, lcd_off: int | None = None, week_off: int | None = None,
-               c819s: int | None = None, c819d: int | None = None):
+async def home(
+    request: Request,
+    jdn: int | None = None,
+    # Accept optional numeric query params as strings so blank values ("") don't raise validation errors
+    new_era: str | None = None,
+    ybm: str | None = None,
+    ybd: str | None = None,
+    preset: str | None = None,
+    tz_off: str | None = None,
+    tzn_off: str | None = None,
+    haab_off: str | None = None,
+    g_off: str | None = None,
+    lcd_off: str | None = None,
+    week_off: str | None = None,
+    c819s: str | None = None,
+    c819d: str | None = None,
+):
+    def _opt_int(v: str | None) -> int | None:
+        if v is None or v == "":
+            return None
+        try:
+            return int(v)
+        except ValueError:
+            return None  # silently ignore bad numeric input for now; could surface error message instead
     error = None
     comp = None
-    if new_era is not None:
-        ABSOLUTE.new_era = new_era
-    if ybm is not None and ybd is not None:
-        DEFAULT_CONFIG.year_bearer_str = ybm
-        DEFAULT_CONFIG.year_bearer_val = ybd
+    new_era_i = _opt_int(new_era)
+    ybm_i = _opt_int(ybm)
+    ybd_i = _opt_int(ybd)
+    if new_era_i is not None:
+        ABSOLUTE.new_era = new_era_i
+    if ybm_i is not None and ybd_i is not None:
+        DEFAULT_CONFIG.year_bearer_str = ybm_i
+        DEFAULT_CONFIG.year_bearer_val = ybd_i
     if preset:
         try:
             apply_preset(preset)
         except KeyError:
             error = f"Unknown preset '{preset}'"
     # Handle correction overrides
-    if tz_off is not None:
-        DEFAULT_CONFIG.tzolkin_haab_correction.tzolkin = tz_off
-    if tzn_off is not None:
-        CORRECTIONS.cTzolkinStr = tzn_off
-    if haab_off is not None:
-        DEFAULT_CONFIG.tzolkin_haab_correction.haab = haab_off
-    if g_off is not None:
-        DEFAULT_CONFIG.tzolkin_haab_correction.g = g_off
-    if lcd_off is not None:
-        DEFAULT_CONFIG.tzolkin_haab_correction.lcd = lcd_off
-    if week_off is not None:
-        CORRECTIONS.cWeekCorrection = week_off
-    if c819s is not None:
-        DEFAULT_CONFIG.cycle819_station_correction = c819s
-    if c819d is not None:
-        DEFAULT_CONFIG.cycle819_dir_color_correction = c819d
+    tz_off_i = _opt_int(tz_off)
+    tzn_off_i = _opt_int(tzn_off)
+    haab_off_i = _opt_int(haab_off)
+    g_off_i = _opt_int(g_off)
+    lcd_off_i = _opt_int(lcd_off)
+    week_off_i = _opt_int(week_off)
+    c819s_i = _opt_int(c819s)
+    c819d_i = _opt_int(c819d)
+    if tz_off_i is not None:
+        DEFAULT_CONFIG.tzolkin_haab_correction.tzolkin = tz_off_i
+    if tzn_off_i is not None:
+        CORRECTIONS.cTzolkinStr = tzn_off_i
+    if haab_off_i is not None:
+        DEFAULT_CONFIG.tzolkin_haab_correction.haab = haab_off_i
+    if g_off_i is not None:
+        DEFAULT_CONFIG.tzolkin_haab_correction.g = g_off_i
+    if lcd_off_i is not None:
+        DEFAULT_CONFIG.tzolkin_haab_correction.lcd = lcd_off_i
+    if week_off_i is not None:
+        CORRECTIONS.cWeekCorrection = week_off_i
+    if c819s_i is not None:
+        DEFAULT_CONFIG.cycle819_station_correction = c819s_i
+    if c819d_i is not None:
+        DEFAULT_CONFIG.cycle819_dir_color_correction = c819d_i
     if jdn is not None and error is None:
         try:
             comp = compute_composite(jdn).to_dict()
@@ -99,9 +129,9 @@ async def home(request: Request, jdn: int | None = None, new_era: int | None = N
     return templates.TemplateResponse('index.html', {
         'request': request,
         'comp': comp,
-        'new_era': new_era,
-        'ybm': ybm,
-        'ybd': ybd,
+    'new_era': new_era_i,
+    'ybm': ybm_i,
+    'ybd': ybd_i,
     'corr': {
         'tzolkin': DEFAULT_CONFIG.tzolkin_haab_correction.tzolkin,
         'tzolkin_name': CORRECTIONS.cTzolkinStr,
