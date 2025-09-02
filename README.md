@@ -1,75 +1,65 @@
 # Pohualli (Python Port)
 
-Python port (work in progress) of the Turbo Pascal Pohualli calendrical utility (Mesoamerican / Maya & Aztec related calculations).
+Work-in-progress Python reimplementation of the original Turbo Pascal Pohualli calendar utility.
 
-Authorization to access original Pascal source code provided by Arnold Lebeuf to Luca Muscariello (May 2020).
+## Goals
 
-## Features Implemented
+- Faithful translation of core calendrical calculations (Maya & Aztec systems)
+- 819-day cycle, planetary synodic values, year bearer computation
+- Configurable New Era and correction parameters
+- Composite API producing structured results
+- Config persistence (save/load JSON)
+- Clear, testable Python modules separated from any UI
+- Modern packaging & minimal dependencies
 
-- Tzolkin & Haab date conversions
-- Long Count with configurable New Era constant
-- Year Bearer packed value
-- 819-day cycle & direction color
-- Basic planetary (Mercury & Venus) synodic calculations
-- Moon age, abnormal distance, eclipse window heuristic
-- Stellar & Earth zodiac degree + name mapping
-- Composite calculator API
-- CLI with JSON output & config persistence
-- FastAPI web UI (HTML + JSON endpoint)
+## Structure
 
-## Running Locally (without Docker)
-
-```bash
-cd py
-python -m venv .venv
-. .venv/bin/activate
-pip install -e .[web]
-uvicorn pohualli.webapp:app --reload --port 8000
 ```
-Then open: http://127.0.0.1:8000
-
-## Docker
-
-Build image:
-```bash
-docker build -t pohualli .
+py/
+  pohualli/
+    composite.py        # High-level conversion + config save/load
+    cli.py              # CLI with JSON output & config management
+    __init__.py
+    maya.py
+    aztec.py
+    cycle819.py
+    planets.py
+    yearbear.py
+  tests/
+    test_maya.py
+    test_cycle_planets.py
+    test_yearbear_cli.py
 ```
 
-Run container:
-```bash
-docker run --rm -p 8000:8000 pohualli
+## Composite Usage (Python)
+```python
+from pohualli import compute_composite
+res = compute_composite(2451545)
+print(res.tzolkin_name, res.long_count, res.star_zodiac_name)
 ```
 
-Or with docker compose:
-```bash
-docker compose up --build
+## CLI Examples
 ```
-
-Open http://localhost:8000 to use the UI.
-
-## CLI Usage
-
-After installing (editable or via image shell):
-```bash
-pohualli from-jdn 2451545 --json
+# Human-readable
+pohualli from-jdn 2451545 --year-bearer-ref 0 0
+# JSON output
+pohualli from-jdn 2451545 --json > result.json
+# Override New Era
+pohualli from-jdn 2451545 --new-era 584285 --json
+# Save & load config
+pohualli save-config config.json
+pohualli load-config config.json
 ```
 
 ## Tests
-
-```bash
-cd py
-pytest -q
+```
+python -m pytest -q
 ```
 
-## Roadmap / Next Steps
-
-- Additional planetary bodies
-- Full corrections model & validation dataset
-- Internationalization / localization in UI
-- Dark mode & accessibility pass
-- Container healthcheck & production-ready image refinements
-
-## License
-
-MIT (port); original Pascal code under permission from author.
-
+## Web UI
+Install web extras and run development server:
+```
+python -m pip install -e .[web]
+uvicorn pohualli.webapp:app --reload
+```
+Open http://127.0.0.1:8000 in a browser.
