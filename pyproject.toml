@@ -8,7 +8,7 @@ license = { text = "MIT" }
 
 [project.optional-dependencies]
 dev = ["pytest"]
-web = ["fastapi","uvicorn","jinja2"]
+web = ["fastapi","uvicorn","jinja2","httpx"]
 
 [project.scripts]
 pohualli = "pohualli.cli:main"

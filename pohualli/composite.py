@@ -11,6 +11,8 @@ from . import (
     julian_day_to_star_zodiac, julian_day_to_earth_zodiac, zodiac_to_name
 )
 from .types import DEFAULT_CONFIG, ABSOLUTE, CORRECTIONS, AbsoluteCorrections, SheetWindowConfig, CorrectionRecord
+from .correlations import active_preset_name
+from .calendar_dates import jdn_to_gregorian, jdn_to_julian, weekday, format_date
 
 @dataclass
 class CompositeResult:
@@ -40,6 +42,22 @@ class CompositeResult:
     star_zodiac_name: str
     earth_zodiac_deg: int
     earth_zodiac_name: str
+    gregorian_date: str | None = None
+    julian_date: str | None = None
+    iso_weekday: int | None = None
+    # Extended planets (optional)
+    mars_synodic: float | None = None
+    mars_index: int | None = None
+    jupiter_synodic: float | None = None
+    jupiter_index: int | None = None
+    saturn_synodic: float | None = None
+    saturn_index: int | None = None
+    uranus_synodic: float | None = None
+    uranus_index: int | None = None
+    neptune_synodic: float | None = None
+    neptune_index: int | None = None
+    pluto_synodic: float | None = None
+    pluto_index: int | None = None
 
     def to_dict(self) -> Dict[str, Any]:
         d = asdict(self)
@@ -59,14 +77,27 @@ def compute_composite(jdn: int, *, config: SheetWindowConfig | None = None) -> C
     yb = year_bearer_packed(haab_month, haab_day, jdn, config=cfg)
     yb_name = unpack_yb_str(yb)
     yb_val = unpack_yb_val(yb)
-    c819_station = julian_day_to_819_station(jdn, 0)
-    c819_value = julian_day_to_819_value(jdn, 0)
-    dir_col = station_to_dir_col(c819_station, 0)
+    c819_station = julian_day_to_819_station(jdn, cfg.cycle819_station_correction)
+    c819_value = julian_day_to_819_value(jdn, cfg.cycle819_station_correction)
+    dir_col = station_to_dir_col(c819_station, cfg.cycle819_dir_color_correction)
     dir_col_str = dir_col_val_to_str(dir_col)
     merc_syn = julian_day_to_planet_synodic_val(jdn, P_MERCURY)
     merc_idx = trunc_planet_synodic_val(merc_syn, P_MERCURY)
     venus_syn = julian_day_to_planet_synodic_val(jdn, P_VENUS)
     venus_idx = trunc_planet_synodic_val(venus_syn, P_VENUS)
+    # Additional planets
+    mars_syn = julian_day_to_planet_synodic_val(jdn, 3)
+    mars_idx = trunc_planet_synodic_val(mars_syn, 3)
+    jup_syn = julian_day_to_planet_synodic_val(jdn, 4)
+    jup_idx = trunc_planet_synodic_val(jup_syn, 4)
+    sat_syn = julian_day_to_planet_synodic_val(jdn, 5)
+    sat_idx = trunc_planet_synodic_val(sat_syn, 5)
+    ura_syn = julian_day_to_planet_synodic_val(jdn, 6)
+    ura_idx = trunc_planet_synodic_val(ura_syn, 6)
+    nep_syn = julian_day_to_planet_synodic_val(jdn, 7)
+    nep_idx = trunc_planet_synodic_val(nep_syn, 7)
+    plu_syn = julian_day_to_planet_synodic_val(jdn, 8)
+    plu_idx = trunc_planet_synodic_val(plu_syn, 8)
     mm_age = julian_day_to_maya_moon(jdn)
     abd = julian_day_to_abn_dist(jdn)
     eclipse_flag = ecliptic(mm_age, abd)
@@ -74,6 +105,9 @@ def compute_composite(jdn: int, *, config: SheetWindowConfig | None = None) -> C
     earth_z = julian_day_to_earth_zodiac(jdn)
     star_name = zodiac_to_name(star_z)
     earth_name = zodiac_to_name(earth_z)
+    g_y,g_m,g_d = jdn_to_gregorian(jdn)
+    j_y,j_m,j_d = jdn_to_julian(jdn)
+    wd = weekday(jdn)
     return CompositeResult(
         jdn=jdn,
         tzolkin_value=tzv,
@@ -92,15 +126,30 @@ def compute_composite(jdn: int, *, config: SheetWindowConfig | None = None) -> C
         dir_color_str=dir_col_str,
         mercury_synodic=merc_syn,
         mercury_index=merc_idx,
-        venus_synodic=venus_syn,
-        venus_index=venus_idx,
+    venus_synodic=venus_syn,
+    venus_index=venus_idx,
+    mars_synodic=mars_syn,
+    mars_index=mars_idx,
+    jupiter_synodic=jup_syn,
+    jupiter_index=jup_idx,
+    saturn_synodic=sat_syn,
+    saturn_index=sat_idx,
+    uranus_synodic=ura_syn,
+    uranus_index=ura_idx,
+    neptune_synodic=nep_syn,
+    neptune_index=nep_idx,
+    pluto_synodic=plu_syn,
+    pluto_index=plu_idx,
         maya_moon_age=mm_age,
         abnormal_distance=abd,
         eclipse_possible=eclipse_flag,
         star_zodiac_deg=star_z,
         star_zodiac_name=star_name,
         earth_zodiac_deg=earth_z,
-        earth_zodiac_name=earth_name,
+    earth_zodiac_name=earth_name,
+    gregorian_date=format_date((g_y,g_m,g_d)),
+    julian_date=format_date((j_y,j_m,j_d)),
+    iso_weekday=wd,
     )
 
 # Persistence ---------------------------------------------------------------------------------
@@ -118,7 +167,8 @@ class PersistedConfig:
         return {
             'config': vars(self.config),
             'corrections': vars(self.corrections),
-            'absolute': vars(self.absolute)
+            'absolute': vars(self.absolute),
+            'correlation_preset': active_preset_name(),
         }
 
 

@@ -30,6 +30,36 @@ function downloadJSON(){
   a.download = 'pohualli_result.json';
   a.click();
 }
+async function runAutocorr(){
+  const jdnField = document.getElementById('jdn');
+  if(!jdnField.value){ alert('Enter JDN first then press Derive.'); return; }
+  const params = new URLSearchParams();
+  params.set('jdn', jdnField.value);
+  const map = {
+    tzolkin: 'ac_tz',
+    haab: 'ac_h',
+    g: 'ac_g',
+    long_count: 'ac_lc',
+    year_bearer: 'ac_yb',
+    cycle819_station: 'ac_819s',
+    cycle819_value: 'ac_819v',
+    dir_color: 'ac_dc'
+  };
+  for(const [k,id] of Object.entries(map)){
+    const v = document.getElementById(id).value.trim();
+    if(v) params.set(k, v);
+  }
+  const pre = document.getElementById('ac_result');
+  pre.style.display='block';
+  pre.textContent='Calculating...';
+  const resp = await fetch('/api/derive-autocorr?' + params.toString());
+  if(resp.ok){
+    const data = await resp.json();
+    pre.textContent = JSON.stringify(data, null, 2);
+  } else {
+    pre.textContent = 'Error: ' + resp.status;
+  }
+}
 </script>
 </head>
 <body>
@@ -47,6 +77,15 @@ function downloadJSON(){
     <input type="number" id="newEra" name="new_era" value="{{ new_era if new_era is not none else '' }}" />
   </div>
   <div>
+    <label for="preset">Correlation Preset</label>
+    <select id="preset" name="preset">
+      <option value="">(none)</option>
+      {% for p in presets %}
+        <option value="{{ p.name }}" {% if active_preset == p.name %}selected{% endif %}>{{ p.name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div>
     <label for="ybm">Year Bearer Month</label>
     <input type="number" id="ybm" name="ybm" min="0" max="18" value="{{ ybm if ybm is not none else '' }}" />
   </div>
@@ -59,6 +98,41 @@ function downloadJSON(){
     {% if comp %}<button class="download" type="button" onclick="downloadJSON()">Download JSON</button>{% endif %}
   </div>
 </form>
+<details style="margin-bottom:1.25rem; background:#fff; padding:1rem 1.25rem; border:1px solid #ccc; border-radius:8px;">
+  <summary style="font-weight:600; cursor:pointer;">Corrections & Offsets</summary>
+  <form method="get" action="/" style="margin-top:.8rem; display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:.75rem;">
+    <input type="hidden" name="jdn" value="{{ comp.jdn if comp else '' }}" />
+    <label>Tzolkin Num Off<input type="number" name="tz_off" value="{{ corr.tzolkin }}" /></label>
+    <label>Tzolkin Name Off<input type="number" name="tzn_off" value="{{ corr.tzolkin_name }}" /></label>
+    <label>Haab Off<input type="number" name="haab_off" value="{{ corr.haab }}" /></label>
+    <label>G Off<input type="number" name="g_off" value="{{ corr.g }}" /></label>
+    <label>LCD Off<input type="number" name="lcd_off" value="{{ corr.lcd }}" /></label>
+    <label>Week Off<input type="number" name="week_off" value="{{ corr.week }}" /></label>
+    <label>819 Station Off<input type="number" name="c819s" value="{{ corr.c819_station }}" /></label>
+    <label>819 Dir/Color Off<input type="number" name="c819d" value="{{ corr.c819_dir }}" /></label>
+    <div style="grid-column:1/-1;">
+      <button type="submit">Apply Corrections</button>
+    </div>
+  </form>
+</details>
+<section style="margin-bottom:1.5rem; background:#fff; padding:1rem 1.25rem; border:1px solid #ccc; border-radius:8px;">
+  <h2 style="margin-top:0">Derive Auto-Corrections</h2>
+  <p style="margin-top:.25rem; font-size:.9rem; color:#444;">Provide any known calendar expressions for this JDN and fetch suggested correction offsets.</p>
+  <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(170px,1fr)); gap:.6rem;">
+    <label style="font-weight:500;">Tzolkin<br><input id="ac_tz" placeholder="e.g. 11 Ik" /></label>
+    <label style="font-weight:500;">Haab<br><input id="ac_h" placeholder="e.g. 0 Pop" /></label>
+    <label style="font-weight:500;">G (0-8)<br><input id="ac_g" type="number" min="0" max="8" /></label>
+    <label style="font-weight:500;">Long Count<br><input id="ac_lc" placeholder="13.0.0.0.0" /></label>
+    <label style="font-weight:500;">Year Bearer<br><input id="ac_yb" placeholder="9 Ix" /></label>
+    <label style="font-weight:500;">819 Station<br><input id="ac_819s" type="number" /></label>
+    <label style="font-weight:500;">819 Value<br><input id="ac_819v" type="number" /></label>
+    <label style="font-weight:500;">Dir Color<br><input id="ac_dc" placeholder="Este Rojo" /></label>
+  </div>
+  <div style="margin-top:.75rem;">
+    <button type="button" onclick="runAutocorr()">Derive Offsets</button>
+  </div>
+  <pre id="ac_result" style="display:none; margin-top:1rem;"></pre>
+</section>
 {% if error %}<div class="error">Error: {{ error }}</div>{% endif %}
 {% if comp %}
 <section>
@@ -72,6 +146,12 @@ function downloadJSON(){
     <div class="card"><h3>Dir Color</h3><div class="value">{{ comp.dir_color_str }}</div></div>
     <div class="card"><h3>Mercury</h3><div class="value">{{ '%.2f' % comp.mercury_synodic }} ({{ comp.mercury_index }})</div></div>
     <div class="card"><h3>Venus</h3><div class="value">{{ '%.2f' % comp.venus_synodic }} ({{ comp.venus_index }})</div></div>
+  <div class="card"><h3>Mars</h3><div class="value">{{ '%.2f' % comp.mars_synodic }} ({{ comp.mars_index }})</div></div>
+  <div class="card"><h3>Jupiter</h3><div class="value">{{ '%.2f' % comp.jupiter_synodic }} ({{ comp.jupiter_index }})</div></div>
+  <div class="card"><h3>Saturn</h3><div class="value">{{ '%.2f' % comp.saturn_synodic }} ({{ comp.saturn_index }})</div></div>
+  <div class="card"><h3>Uranus</h3><div class="value">{{ '%.2f' % comp.uranus_synodic }} ({{ comp.uranus_index }})</div></div>
+  <div class="card"><h3>Neptune</h3><div class="value">{{ '%.2f' % comp.neptune_synodic }} ({{ comp.neptune_index }})</div></div>
+  <div class="card"><h3>Pluto</h3><div class="value">{{ '%.2f' % comp.pluto_synodic }} ({{ comp.pluto_index }})</div></div>
     <div class="card"><h3>Maya Moon</h3><div class="value">{{ '%.2f' % comp.maya_moon_age }}</div></div>
     <div class="card"><h3>Abn Dist</h3><div class="value">{{ '%.2f' % comp.abnormal_distance }}</div></div>
     <div class="card"><h3>Eclipse?</h3><div class="value">{{ 'Yes' if comp.eclipse_possible else 'No' }}</div></div>

@@ -5,15 +5,16 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1
 
-WORKDIR /app/py
+WORKDIR /app
 
 # System deps (minimal). Add build-essential if later you need compiled deps.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
  && rm -rf /var/lib/apt/lists/*
 
-# Copy project (only python package & build metadata)
-COPY py/ /app/py/
+# Copy project (python package + build metadata)
+COPY pyproject.toml /app/
+COPY pohualli /app/pohualli
 
 # Install project with web extras
 RUN pip install --upgrade pip && pip install .[web]

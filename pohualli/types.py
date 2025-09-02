@@ -19,6 +19,9 @@ class SheetWindowConfig:
     # Year bearer reference (analogous to SheetWindowRec.YearBearerStr/Val)
     year_bearer_str: int = 0  # Haab month index (0..18)
     year_bearer_val: int = 0  # Haab day number (0..19)
+    # 819-cycle and direction/color corrections (extensions not in original Pascal struct name)
+    cycle819_station_correction: int = 0
+    cycle819_dir_color_correction: int = 0
 
 # Global-like (kept configurable to avoid hidden state).
 DEFAULT_CONFIG = SheetWindowConfig()

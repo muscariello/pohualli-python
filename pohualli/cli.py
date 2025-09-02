@@ -1,5 +1,6 @@
 from __future__ import annotations
 import argparse, json
+from .correlations import list_presets, apply_preset
 from . import (
     julian_day_to_tzolkin_value, julian_day_to_tzolkin_name_index,
     julian_day_to_haab_packed, unpack_haab_month, unpack_haab_value,
@@ -7,6 +8,7 @@ from . import (
     year_bearer_packed, DEFAULT_CONFIG, compute_composite, save_config, load_config
 )
 from .types import ABSOLUTE
+from .autocorr import derive_auto_corrections
 
 def format_long_count(lc):
     return ".".join(str(x) for x in lc)
@@ -23,6 +25,19 @@ def main(argv=None):
     confs.add_argument("path", help="Path to JSON config file")
     confl = sub.add_parser("load-config", help="Load configuration from file")
     confl.add_argument("path", help="Path to JSON config file")
+    corr_list = sub.add_parser('list-correlations', help='List available correlation presets')
+    corr_apply = sub.add_parser('apply-correlation', help='Apply a correlation preset')
+    corr_apply.add_argument('name', help='Preset name (see list-correlations)')
+    ac = sub.add_parser('derive-autocorr', help='Brute-force derive correction offsets from a target date and specs')
+    ac.add_argument('jdn', type=int)
+    ac.add_argument('--tzolkin')
+    ac.add_argument('--haab')
+    ac.add_argument('--g', type=int)
+    ac.add_argument('--long-count')
+    ac.add_argument('--year-bearer')
+    ac.add_argument('--cycle819-station', type=int)
+    ac.add_argument('--cycle819-value', type=int)
+    ac.add_argument('--dir-color')
     args = p.parse_args(argv)
 
     if args.cmd == "from-jdn":
@@ -52,6 +67,25 @@ def main(argv=None):
         save_config(args.path)
     elif args.cmd == "load-config":
         load_config(args.path)
+    elif args.cmd == 'list-correlations':
+        for pset in list_presets():
+            print(f"{pset.name}\t{pset.new_era}\t{pset.description}")
+    elif args.cmd == 'apply-correlation':
+        preset = apply_preset(args.name)
+        print(f"Applied correlation '{preset.name}' (New Era={preset.new_era})")
+    elif args.cmd == 'derive-autocorr':
+        res = derive_auto_corrections(
+            args.jdn,
+            tzolkin=args.tzolkin,
+            haab=args.haab,
+            g_value=args.g,
+            long_count=args.long_count,
+            year_bearer=args.year_bearer,
+            cycle819_station=args.cycle819_station,
+            cycle819_value=args.cycle819_value,
+            dir_color=args.dir_color,
+        )
+        print(json.dumps(res.__dict__, indent=2, sort_keys=True))
 
 if __name__ == "__main__":  # pragma: no cover
     main()

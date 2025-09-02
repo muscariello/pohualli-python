@@ -17,3 +17,14 @@ def test_home_page():
     r2 = client.get('/', params={'jdn':2451545})
     assert r2.status_code == 200
     assert 'Tzolkin' in r2.text
+
+def test_api_derive_autocorr():
+    # Use a simple tzolkin spec derived from composite for stability
+    jdn = 2451545
+    comp = client.get('/api/convert', params={'jdn': jdn}).json()
+    tz_spec = f"{comp['tzolkin_value']} {comp['tzolkin_name']}"
+    r = client.get('/api/derive-autocorr', params={'jdn': jdn, 'tzolkin': tz_spec})
+    assert r.status_code == 200
+    data = r.json()
+    assert 'tzolkin_offset' in data
+    assert 0 <= data['tzolkin_offset'] < 260

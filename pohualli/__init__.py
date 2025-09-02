@@ -29,7 +29,7 @@ from .cycle819 import (
 from .planets import (
     julian_day_to_planet_synodic_val,
     trunc_planet_synodic_val,
-    P_MERCURY, P_VENUS, P_MARS, P_IUPITER, P_SATURN, P_URAN, P_NEPTUN, P_PLUTON
+    P_MERCURY, P_VENUS, P_MARS, P_JUPITER, P_SATURN, P_URANUS, P_NEPTUNE, P_PLUTO
 )
 from .yearbear import (
     year_bearer_packed,
@@ -48,6 +48,9 @@ from .zodiac import (
 from .composite import (
     compute_composite, save_config, load_config, CompositeResult
 )
+from .correlations import list_presets, apply_preset
+from .calendar_dates import jdn_to_gregorian, jdn_to_julian, weekday, format_date, gregorian_correction_pascal, jdn_to_gregorian_pascal
+from .autocorr import derive_auto_corrections, AutoCorrectionResult
 
 __all__ = [
     # Maya
@@ -62,7 +65,7 @@ __all__ = [
     'julian_day_to_819_station','julian_day_to_819_value','station_to_dir_col','dir_col_str_to_val','dir_col_val_to_str',
     # Planets
     'julian_day_to_planet_synodic_val','trunc_planet_synodic_val',
-    'P_MERCURY','P_VENUS','P_MARS','P_IUPITER','P_SATURN','P_URAN','P_NEPTUN','P_PLUTON',
+    'P_MERCURY','P_VENUS','P_MARS','P_JUPITER','P_SATURN','P_URANUS','P_NEPTUNE','P_PLUTO',
     # Year bearer (partial)
     'year_bearer_packed','unpack_yb_str','unpack_yb_val',
     # Types / config
@@ -74,4 +77,8 @@ __all__ = [
     'julian_day_to_star_zodiac','julian_day_to_earth_zodiac',
     # Composite
     'compute_composite','save_config','load_config','CompositeResult'
+    , 'list_presets','apply_preset'
+    , 'jdn_to_gregorian','jdn_to_julian','weekday','format_date'
+    , 'gregorian_correction_pascal','jdn_to_gregorian_pascal'
+    , 'derive_auto_corrections','AutoCorrectionResult'
 ]
