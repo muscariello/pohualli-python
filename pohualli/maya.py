@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 from __future__ import annotations
 from .types import DEFAULT_CONFIG, CORRECTIONS, LongCountDate, ABSOLUTE
 from .aztec import number_to_aztec_tzolkin_name, number_to_aztec_haab_name

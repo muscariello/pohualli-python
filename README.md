@@ -63,3 +63,8 @@ python -m pip install -e .[web]
 uvicorn pohualli.webapp:app --reload
 ```
 Open http://127.0.0.1:8000 in a browser.
+
+## License
+
+This project is licensed under the GNU General Public License v3.0 (GPL-3.0-only). See the `LICENSE` file.
+
