@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 from __future__ import annotations
 from .maya import julian_day_to_tzolkin_name_index, julian_day_to_tzolkin_value, julian_day_to_tzolkin_name_index as julian_day_to_tzolkin
 from .types import DEFAULT_CONFIG

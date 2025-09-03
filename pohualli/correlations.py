@@ -3,6 +3,7 @@
 Provides named sets of absolute correction constants similar to Pascal CorrectReset.
 Only the core fields currently used by the Python port are applied; others are stored for future expansion.
 """
+# SPDX-License-Identifier: GPL-3.0-only
 from __future__ import annotations
 from dataclasses import dataclass
 from .types import ABSOLUTE

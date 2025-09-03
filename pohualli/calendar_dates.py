@@ -3,6 +3,7 @@
 Currently uses standard astronomical algorithms (Fliegel & Van Flandern) and does
 not yet exploit all custom cycle fields, but integrates week correction.
 """
+# SPDX-License-Identifier: GPL-3.0-only
 from __future__ import annotations
 from .types import CORRECTIONS, ABSOLUTE
 
