@@ -27,6 +27,7 @@ class CompositeResult:
     year_bearer_packed: int
     year_bearer_name_index: int
     year_bearer_value: int
+    year_bearer_name: str
     cycle819_station: int
     cycle819_value: int
     dir_color_val: int
@@ -108,6 +109,7 @@ def compute_composite(jdn: int, *, config: SheetWindowConfig | None = None) -> C
     g_y,g_m,g_d = jdn_to_gregorian(jdn)
     j_y,j_m,j_d = jdn_to_julian(jdn)
     wd = weekday(jdn)
+    yb_tz_name = tzolkin_number_to_name(yb_name)
     return CompositeResult(
         jdn=jdn,
         tzolkin_value=tzv,
@@ -119,7 +121,8 @@ def compute_composite(jdn: int, *, config: SheetWindowConfig | None = None) -> C
         long_count=lc,
         year_bearer_packed=yb,
         year_bearer_name_index=yb_name,
-        year_bearer_value=yb_val,
+    year_bearer_value=yb_val,
+    year_bearer_name=yb_tz_name,
         cycle819_station=c819_station,
         cycle819_value=c819_value,
         dir_color_val=dir_col,

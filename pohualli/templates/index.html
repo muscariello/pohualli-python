@@ -3,24 +3,243 @@
 <head>
 <meta charset="UTF-8" />
 <title>Pohualli Calendar Converter</title>
+<script>
+// Apply saved theme early to avoid flash
+(function(){
+  try { var th = localStorage.getItem('pohualli_theme'); if(th){ document.documentElement.setAttribute('data-theme', th); } } catch(e){}
+})();
+</script>
 <style>
-body { font-family: system-ui, sans-serif; margin: 2rem; background:#fafafa; }
-header { margin-bottom:1.5rem; }
-form { margin-bottom:1.5rem; background:#fff; padding:1rem 1.25rem; border:1px solid #ccc; border-radius:8px; display:grid; grid-template-columns: repeat(auto-fill,minmax(220px,1fr)); gap:1rem; }
-label { display:block; margin:.2rem 0 .25rem; font-weight:600; }
-input { padding:.4rem .6rem; font-size:1rem; width: 100%; }
-button { padding:.55rem 1rem; font-size:1rem; cursor:pointer; }
-.actions { grid-column: 1 / -1; }
-.download { margin-left:.5rem; }
-pre { background:#272822; color:#f8f8f2; padding:1rem; overflow:auto; border-radius:6px; }
-.error { color:#b00020; font-weight:600; }
-footer { margin-top:2rem; font-size:.85rem; color:#666; }
-.grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(220px,1fr)); gap:1rem; }
-.card { background:#fff; border:1px solid #ddd; border-radius:8px; padding:.75rem .9rem; }
-.card h3 { margin:.1rem 0 .4rem; font-size:1rem; }
-.value { font-family:monospace; }
+/* --- Color System (basic palette) --- */
+:root {
+  --color-bg: #0f1115;
+  --color-bg-alt: #171b22;
+  --color-panel: #1f2530;
+  --color-panel-alt: #262f3b;
+  --color-border: #324050;
+  --color-border-soft: #2b3542;
+  --color-text: #f5f7fa;
+  --color-text-soft: #c2c9d2;
+  --color-accent: #2d83f4;
+  --color-accent-accent: #4a9bff;
+  --color-accent-glow: rgba(77,155,255,0.25);
+  --color-danger: #ff4d61;
+  --color-warning: #f4b742;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 14px;
+  --shadow-sm: 0 2px 4px -1px rgba(0,0,0,.35), 0 1px 1px rgba(0,0,0,.3);
+  --shadow-md: 0 4px 10px -2px rgba(0,0,0,.45), 0 2px 4px rgba(0,0,0,.35);
+  --focus-ring: 0 0 0 3px var(--color-accent-glow), 0 0 0 1px var(--color-accent);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+/* Light theme overrides */
+:root[data-theme='light'] {
+  --color-bg: #f5f7fa;
+  --color-bg-alt: #eef1f5;
+  --color-panel: #ffffff;
+  --color-panel-alt: #f1f5f9;
+  --color-border: #cfd8e3;
+  --color-border-soft: #d9e1ea;
+  --color-text: #1f2a36;
+  --color-text-soft: #4d5b68;
+  --color-accent: #2d7df4;
+  --color-accent-accent: #3f8dff;
+  --color-accent-glow: rgba(45,125,244,0.25);
+  --color-danger: #d93046;
+  --color-warning: #c98607;
+  --shadow-sm: 0 2px 4px -1px rgba(0,0,0,.12), 0 1px 1px rgba(0,0,0,.08);
+  --shadow-md: 0 6px 14px -2px rgba(0,0,0,.18), 0 2px 6px rgba(0,0,0,.12);
+}
+html, body { height:100%; }
+body {
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+  margin: 0;
+  background: radial-gradient(circle at 25% 20%, var(--color-bg-alt), var(--color-bg) 65%) fixed;
+  color: var(--color-text);
+  line-height:1.4;
+  transition: background .4s ease, color .25s ease;
+}
+.page-wrap { max-width:1250px; margin:0 auto; padding:2rem 2.2rem 3.5rem; }
+header { margin:0 0 1.75rem; }
+header h1 { margin:0 0 .4rem; font-size:clamp(1.8rem, 2.6vw, 2.4rem); letter-spacing:.5px; background:linear-gradient(90deg,#4a9bff,#8bc8ff); -webkit-background-clip:text; background-clip:text; color:transparent; }
+header p { margin:0; color: var(--color-text-soft); }
+form {
+  margin-bottom:1.75rem;
+  background:linear-gradient(145deg,var(--color-panel),var(--color-panel-alt));
+  padding:1.15rem 1.35rem 1.25rem;
+  border:1px solid var(--color-border);
+  border-radius:var(--radius-lg);
+  display:grid;
+  grid-template-columns: repeat(auto-fill,minmax(220px,1fr));
+  gap:1rem 1.1rem;
+  box-shadow: var(--shadow-sm);
+  position:relative;
+}
+form:focus-within { box-shadow: var(--shadow-md); border-color: var(--color-accent); }
+label { display:block; margin:.15rem 0 .35rem; font-weight:600; font-size:.8rem; letter-spacing:.5px; text-transform:uppercase; color: var(--color-text-soft); }
+input, select { padding:.55rem .65rem; font-size:.95rem; width:100%; border:1px solid var(--color-border); border-radius:var(--radius-sm); background: #12161c; color: var(--color-text); transition:border-color .15s, background .15s; }
+input:focus, select:focus { outline:none; border-color: var(--color-accent); box-shadow: var(--focus-ring); background:#10141a; }
+button { padding:.6rem 1.05rem; font-size:.9rem; font-weight:600; letter-spacing:.4px; border:none; border-radius:var(--radius-sm); cursor:pointer; background:linear-gradient(90deg,var(--color-accent),var(--color-accent-accent)); color:#fff; box-shadow:0 2px 4px -1px rgba(0,0,0,.45), 0 0 0 1px rgba(255,255,255,0.04); display:inline-flex; align-items:center; gap:.4rem; position:relative; }
+button:hover { filter:brightness(1.08); }
+button:active { transform:translateY(1px); }
+button:focus { outline:none; box-shadow: var(--focus-ring); }
+button.download { background:linear-gradient(90deg,#3aa86d,#52c888); }
+button.download:hover { filter:brightness(1.1); }
+button.danger { background:linear-gradient(90deg,#ff4d61,#ff6f7f); }
+.actions { grid-column:1 / -1; display:flex; flex-wrap:wrap; gap:.6rem; margin-top:.2rem; }
+pre { background:#10141a; color:#e6edf3; padding:1rem 1.1rem; overflow:auto; border-radius:var(--radius-md); border:1px solid var(--color-border-soft); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.02); }
+.error { color:var(--color-danger); font-weight:600; margin: .5rem 0 1rem; }
+footer { margin-top:2.5rem; font-size:.8rem; color:var(--color-text-soft); text-align:center; opacity:.85; }
+.grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(210px,1fr)); gap:1rem; }
+.card { position:relative; background:linear-gradient(160deg,#1e242e,#232b36 55%, #1c222b); border:1px solid var(--color-border); border-radius:var(--radius-lg); padding:.85rem .95rem .9rem; box-shadow: var(--shadow-sm); transition:transform .15s, box-shadow .15s, border-color .2s; }
+.card::before { content:""; position:absolute; inset:0; border-radius:inherit; padding:1px; background:linear-gradient(120deg, transparent 0%, rgba(77,155,255,0.15) 45%, transparent 90%); -webkit-mask:linear-gradient(#000,#000) content-box, linear-gradient(#000,#000); mask:linear-gradient(#000,#000) content-box, linear-gradient(#000,#000); -webkit-mask-composite:xor; mask-composite:exclude; opacity:.6; pointer-events:none; }
+/* Light theme refinements */
+:root[data-theme='light'] body { background: radial-gradient(circle at 25% 20%, var(--color-bg), var(--color-bg-alt) 75%) fixed; }
+:root[data-theme='light'] form, :root[data-theme='light'] details, :root[data-theme='light'] .card { background: var(--color-panel); }
+:root[data-theme='light'] input, :root[data-theme='light'] select { background:#ffffff; color: var(--color-text); }
+:root[data-theme='light'] pre { background:#ffffff; color:#1f2a36; }
+:root[data-theme='light'] header h1 { background:linear-gradient(90deg,#2d7df4,#5aa9ff); -webkit-background-clip:text; background-clip:text; }
+.card:hover { transform:translateY(-3px); box-shadow: var(--shadow-md); border-color: var(--color-accent); }
+.card h3 { margin:.1rem 0 .45rem; font-size:.8rem; letter-spacing:.6px; font-weight:700; text-transform:uppercase; color: var(--color-text-soft); }
+.value { font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; font-size:.95rem; word-break:break-word; }
+details { border-radius:var(--radius-lg); background:linear-gradient(145deg,var(--color-panel),var(--color-panel-alt)); border:1px solid var(--color-border); box-shadow:var(--shadow-sm); }
+details[open] { box-shadow:var(--shadow-md); }
+details > summary { padding:.9rem 1.05rem; list-style:none; cursor:pointer; font-weight:600; letter-spacing:.4px; color: var(--color-text-soft); }
+details > summary::-webkit-details-marker { display:none; }
+details form { background:transparent; box-shadow:none; border:none; padding:.2rem 1.05rem 1rem; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+details form label { font-size:.65rem; }
+details form input { background:#141a22; }
+
+/* --- Improved dark mode readability for Corrections & Offsets --- */
+:root:not([data-theme='light']) details { background:linear-gradient(155deg,#242d38,#1b222b 70%, #181e25); border-color:#3b4b5c; }
+:root:not([data-theme='light']) details > summary { color:#d0d7e0; background:linear-gradient(120deg,#242f3a,#1e262f); border-bottom:1px solid #334252; border-top-left-radius:var(--radius-lg); border-top-right-radius:var(--radius-lg); }
+:root:not([data-theme='light']) details[open] > summary { box-shadow:inset 0 -1px 0 #334252; }
+:root:not([data-theme='light']) details form label { color:#b7c2cc; letter-spacing:.6px; }
+:root:not([data-theme='light']) details form input { background:#1f2731; border:1px solid #3a4a5a; color:#ecf2f8; }
+:root:not([data-theme='light']) details form input:focus { border-color: var(--color-accent); box-shadow: var(--focus-ring); background:#1b222b; }
+:root:not([data-theme='light']) details form input::placeholder { color:#6b7782; }
+
+/* Light mode subtle distinction */
+:root[data-theme='light'] details > summary { background:linear-gradient(90deg,#f8fafc,#ecf2f8); color:#2e3944; border-bottom:1px solid #d6e0ea; }
+:root[data-theme='light'] details form input { border:1px solid #c3d0db; }
+
+@media (max-width: 720px){
+  .page-wrap { padding:1.15rem 1.1rem 2.5rem; }
+  form { grid-template-columns: repeat(auto-fill,minmax(170px,1fr)); }
+  .grid { grid-template-columns: repeat(auto-fill,minmax(170px,1fr)); }
+}
 </style>
 <script>
+// --- Persistence of correction and config fields via localStorage ---
+const STORAGE_KEY = 'pohualli_corrections_v1';
+const THEME_KEY = 'pohualli_theme';
+function loadCorrectionsFromStorage(){
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return;
+    const data = JSON.parse(raw);
+    const map = {
+      new_era: 'newEra',
+      ybm: 'ybm',
+      ybd: 'ybd',
+      tz_off: 'tz_off',
+      tzn_off: 'tzn_off',
+      haab_off: 'haab_off',
+      g_off: 'g_off',
+      lcd_off: 'lcd_off',
+      week_off: 'week_off',
+      c819s: 'c819s',
+      c819d: 'c819d'
+    };
+    for(const [k, id] of Object.entries(map)){
+      if(data[k] !== undefined && data[k] !== null){
+        const el = document.querySelector(`[name="${k}"]`) || document.getElementById(id);
+        if(el && el.value === '') el.value = data[k];
+      }
+    }
+  } catch(e) { console.warn('Failed to load stored corrections', e); }
+}
+function collectCurrentCorrections(){
+  const fields = ['new_era','ybm','ybd','tz_off','tzn_off','haab_off','g_off','lcd_off','week_off','c819s','c819d'];
+  const out = {};
+  for(const f of fields){
+    const el = document.querySelector(`[name="${f}"]`) || document.getElementById(f);
+    if(el && el.value !== '') out[f] = el.value;
+  }
+  return out;
+}
+function saveCorrections(){
+  const data = collectCurrentCorrections();
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
+  catch(e){ alert('Unable to persist locally: ' + e); return; }
+  flashStatus('Saved locally');
+}
+function resetCorrections(){
+  localStorage.removeItem(STORAGE_KEY);
+  flashStatus('Cleared saved corrections');
+}
+function resetToDefaults(){
+  // Remove any persisted custom values
+  localStorage.removeItem(STORAGE_KEY);
+  // Default constants mirrored from backend defaults
+  const defaults = {
+    new_era: '584285', // ABSOLUTE.new_era default
+    ybm: '',
+    ybd: '',
+    tz_off: '0',
+    tzn_off: '0',
+    haab_off: '0',
+    g_off: '0',
+    lcd_off: '0',
+    week_off: '0',
+    c819s: '0',
+    c819d: '0'
+  };
+  for(const [k,v] of Object.entries(defaults)){
+    const el = document.querySelector(`[name="${k}"]`);
+    if(el) el.value = v;
+  }
+  flashStatus('Defaults applied (submit to use)');
+}
+function flashStatus(msg){
+  let bar = document.getElementById('statusbar');
+  if(!bar){
+    bar = document.createElement('div');
+    bar.id = 'statusbar';
+    bar.style.position='fixed';
+    bar.style.bottom='1rem';
+    bar.style.right='1rem';
+    bar.style.background='#333';
+    bar.style.color='#fff';
+    bar.style.padding='.5rem .75rem';
+    bar.style.borderRadius='6px';
+    bar.style.opacity='0.95';
+    document.body.appendChild(bar);
+  }
+  bar.textContent = msg;
+  setTimeout(()=>{ if(bar) bar.remove(); }, 2500);
+}
+document.addEventListener('DOMContentLoaded', loadCorrectionsFromStorage);
+
+// Theme toggle
+function applyTheme(t){
+  document.documentElement.setAttribute('data-theme', t);
+  try { localStorage.setItem(THEME_KEY, t); } catch(e){}
+  const btn = document.getElementById('themeToggle');
+  if(btn){ btn.textContent = t === 'light' ? 'Dark Mode' : 'Light Mode'; }
+}
+function toggleTheme(){
+  const cur = document.documentElement.getAttribute('data-theme') || 'dark';
+  applyTheme(cur === 'light' ? 'dark' : 'light');
+}
+document.addEventListener('DOMContentLoaded', ()=>{
+  const saved = localStorage.getItem(THEME_KEY);
+  if(saved){ applyTheme(saved); } else { applyTheme(document.documentElement.getAttribute('data-theme')||'dark'); }
+});
+
 function downloadJSON(){
   const pre = document.getElementById('rawjson');
   if(!pre) return;
@@ -63,6 +282,7 @@ async function runAutocorr(){
 </script>
 </head>
 <body>
+<div class="page-wrap">
 <header>
   <h1>Pohualli Calendar Converter</h1>
   <p>Enter parameters to view composite Mesoamerican calendar data.</p>
@@ -94,8 +314,12 @@ async function runAutocorr(){
     <input type="number" id="ybd" name="ybd" min="0" max="19" value="{{ ybd if ybd is not none else '' }}" />
   </div>
   <div class="actions">
-    <button type="submit">Convert</button>
+  <button type="submit">Convert</button>
     {% if comp %}<button class="download" type="button" onclick="downloadJSON()">Download JSON</button>{% endif %}
+  <button type="button" onclick="saveCorrections()">Save Corrections</button>
+  <button type="button" onclick="resetCorrections()">Reset Saved</button>
+  <button type="button" onclick="resetToDefaults()">Defaults</button>
+  <button type="button" id="themeToggle" onclick="toggleTheme()" style="margin-left:auto;">Light Mode</button>
   </div>
 </form>
 <details style="margin-bottom:1.25rem; background:#fff; padding:1rem 1.25rem; border:1px solid #ccc; border-radius:8px;">
@@ -141,7 +365,9 @@ async function runAutocorr(){
     <div class="card"><h3>Tzolkin</h3><div class="value">{{ comp.tzolkin_value }} {{ comp.tzolkin_name }}</div></div>
     <div class="card"><h3>Haab</h3><div class="value">{{ comp.haab_day }} {{ comp.haab_month_name }}</div></div>
     <div class="card"><h3>Long Count</h3><div class="value">{{ comp.long_count }}</div></div>
-    <div class="card"><h3>Year Bearer</h3><div class="value">0x{{ '%04X' % comp.year_bearer_packed }}</div></div>
+    <div class="card"><h3>Year Bearer</h3>
+      <div class="value" title="Packed: 0x{{ '%04X' % comp.year_bearer_packed }}">{{ comp.year_bearer_value }} {{ comp.year_bearer_name }}</div>
+    </div>
     <div class="card"><h3>819 Cycle</h3><div class="value">Station {{ comp.cycle819_station }} / {{ comp.cycle819_value }}</div></div>
     <div class="card"><h3>Dir Color</h3><div class="value">{{ comp.dir_color_str }}</div></div>
     <div class="card"><h3>Mercury</h3><div class="value">{{ '%.2f' % comp.mercury_synodic }} ({{ comp.mercury_index }})</div></div>
@@ -163,5 +389,6 @@ async function runAutocorr(){
 </section>
 {% endif %}
 <footer>Generated by Pohualli Python port.</footer>
+</div>
 </body>
 </html>
