@@ -1,0 +1,59 @@
+site_name: Pohualli Python
+site_description: "Calendrical calculations (Maya & Aztec) in Python"
+site_url: https://muscariello.github.io/pohualli-python/
+repo_url: https://github.com/muscariello/pohualli-python
+repo_name: muscariello/pohualli-python
+copyright: "© 2025 muscariello"
+
+nav:
+  - Home: index.md
+  - Usage:
+      - Quick Start: usage/quickstart.md
+      - CLI: usage/cli.md
+      - Python API: usage/python-api.md
+  - Concepts:
+      - Calendars: concepts/calendars.md
+      - Corrections & Config: concepts/configuration.md
+  - Development: dev.md
+  - License: license.md
+
+theme:
+  name: material
+  features:
+    - navigation.sections
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+  palette:
+    - scheme: default
+      primary: teal
+      accent: indigo
+    - scheme: slate
+      primary: teal
+      accent: indigo
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+  language: en
+
+markdown_extensions:
+  - toc:
+      permalink: true
+  - admonition
+  - codehilite
+  - footnotes
+  - tables
+  - attr_list
+  - def_list
+  - md_in_html
+
+plugins:
+  - search
+  # (Optional) add gen-files or literate-nav later if we auto-generate API docs
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/muscariello/pohualli-python
+
