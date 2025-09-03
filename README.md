@@ -1,5 +1,7 @@
 # Pohualli (Python Port)
 
+[![Docs](https://img.shields.io/badge/docs-GitHub%20Pages-blue)](https://muscariello.github.io/pohualli-python/)
+
 Work-in-progress Python reimplementation of the original Turbo Pascal Pohualli calendar utility.
 
 ## Goals
