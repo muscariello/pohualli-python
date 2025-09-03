@@ -4,11 +4,12 @@ version = "0.1.0"
 requires-python = ">=3.10"
 description = "Python port (in progress) of the Turbo Pascal Pohualli calendrical utility"
 authors = [ { name = "Port Maintainers" } ]
-license = { text = "MIT" }
+license = { text = "GPL-3.0-only" }
 
 [project.optional-dependencies]
 dev = ["pytest"]
 web = ["fastapi","uvicorn","jinja2","httpx"]
+docs = ["mkdocs>=1.6.0","mkdocs-material>=9.5.0","mkdocs-gen-files","mkdocs-literate-nav","mkdocs-section-index"]
 
 [project.scripts]
 pohualli = "pohualli.cli:main"
