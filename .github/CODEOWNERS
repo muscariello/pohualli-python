@@ -1,0 +1,19 @@
+# CODEOWNERS for pohualli-python
+# Lines are evaluated top-to-bottom; last match wins.
+# See: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default owner for everything
+* @muscariello
+
+# Workflows
+.github/workflows/* @muscariello
+
+# Python package
+pohualli/** @muscariello
+
+# Tests
+tests/** @muscariello
+
+# Docs / root files
+README.md @muscariello
+LICENSE @muscariello

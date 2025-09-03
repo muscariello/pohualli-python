@@ -9,6 +9,7 @@ string like "9 Ix" (number + tzolkin name) using a brute force search of 19*20 c
 
 This intentionally ignores 819 and direction-color corrections for now.
 """
+# SPDX-License-Identifier: GPL-3.0-only
 from __future__ import annotations
 from dataclasses import dataclass
 from typing import Optional

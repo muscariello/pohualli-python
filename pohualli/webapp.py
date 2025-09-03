@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
 from __future__ import annotations
 from fastapi import FastAPI, Query
 from fastapi.responses import HTMLResponse, JSONResponse
