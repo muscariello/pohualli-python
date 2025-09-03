@@ -64,7 +64,33 @@ uvicorn pohualli.webapp:app --reload
 ```
 Open http://127.0.0.1:8000 in a browser.
 
-## License
+## Docker
 
-This project is licensed under the GNU General Public License v3.0 (GPL-3.0-only). See the `LICENSE` file.
+Build locally:
 
+```bash
+docker build -t pohualli .
+docker run --rm -p 8000:8000 pohualli
+```
+
+### Pre-built Images (GitHub Container Registry)
+
+Multi-architecture images (linux/amd64, linux/arm64) are published automatically from `main` and version tags via GitHub Actions.
+
+Pull latest:
+
+```bash
+docker pull ghcr.io/muscariello/pohualli-python:latest
+```
+
+Run:
+
+```bash
+docker run --rm -p 8000:8000 ghcr.io/muscariello/pohualli-python:latest
+```
+
+Use a specific version tag:
+
+```bash
+docker pull ghcr.io/muscariello/pohualli-python:v1.2.3
+```
