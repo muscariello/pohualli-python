@@ -14,10 +14,39 @@ Python reimplementation of the original Turbo Pascal Pohualli calendrical utilit
 - FastAPI web UI + CLI + JSON output
 
 ## Install
+
+### Option 1: PyPI (CLI & library)
 ```
 pip install pohualli
 ```
-PyPI page: https://pypi.org/project/pohualli/
+Include web extras (FastAPI UI) if you want the local server:
+```
+pip install "pohualli[web]"
+```
+PyPI: https://pypi.org/project/pohualli/
+
+### Option 2: Desktop Bundle (macOS / Windows)
+Download the pre-built bundle artifacts (App on macOS, MSI or app dir on Windows) from the Desktop Bundles workflow or a Release.
+
+macOS first run (unsigned / ad‑hoc bundle):
+1. Move `Pohualli.app` to `/Applications` (optional but typical).
+2. Control‑click the app → Open → Open (this whitelists it in Gatekeeper).
+3. Browser opens automatically; if not, visit the printed `http://127.0.0.1:<port>`.
+
+Windows:
+1. Run the MSI or `Pohualli.exe` inside the unpacked directory.
+2. If SmartScreen warns, choose “More info” → “Run anyway”.
+3. Browser tab should appear automatically.
+
+Updates: replace the old bundle with the new one (no persistent user data yet).
+
+### Option 3: From Source (development)
+```
+git clone https://github.com/muscariello/pohualli-python.git
+cd pohualli-python
+pip install -e .[dev,web]
+```
+Then run CLI (`pohualli ...`) or web app (`uvicorn pohualli.webapp:app --reload`).
 
 ## Structure
 ```
@@ -43,6 +72,7 @@ PyPI page: https://pypi.org/project/pohualli/
 │       └── python-api.md        # Python API examples
 ├── pohualli/
 │   ├── __init__.py              # Public API exports (compute_composite, etc.)
+│   ├── __main__.py              # Module entry point (python -m pohualli / bundle)
 │   ├── autocorr.py              # Derive correction offsets from constraints
 │   ├── aztec.py                 # Aztec (Tonalpohualli) name tables & helpers
 │   ├── calendar_dates.py        # Gregorian/Julian conversions & weekday calc

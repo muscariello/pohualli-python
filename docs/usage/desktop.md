@@ -20,6 +20,14 @@ pip install -e .[dev,web]
 ```
 (Or use `pipx install briefcase` if you prefer a global Briefcase.)
 
+## Install Options Summary
+- PyPI (library + CLI): `pip install pohualli` (add `[web]` for UI)
+- Desktop bundle (macOS/Windows): download artifact from CI or Release and run the app directly (no Python needed)
+
+macOS first-run approval (unsigned/ad-hoc): Control-click the app, choose Open, then confirm. Subsequent launches are normal.
+
+Windows SmartScreen: Click “More info” → “Run anyway” if warned (unsigned build).
+
 ## Build Steps (macOS / Linux)
 ```bash
 briefcase create   # Generate platform project structure
