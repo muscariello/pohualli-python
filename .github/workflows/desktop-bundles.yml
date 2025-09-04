@@ -54,3 +54,9 @@ jobs:
           path: dist/**/*
           if-no-files-found: warn
 
+      - name: Generate build attestation
+        uses: actions/attest-build-provenance@v1
+        if: success()
+        with:
+          subject-path: dist/**
+
