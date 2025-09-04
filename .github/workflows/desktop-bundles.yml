@@ -8,6 +8,9 @@ on:
 jobs:
   build-desktop:
     runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read      # Needed to read repo contents
+      id-token: write     # Required for OIDC token to generate provenance
     strategy:
       fail-fast: false
       matrix:
@@ -44,8 +47,8 @@ jobs:
         run: |
           echo "Listing dist directory"
           ls -R dist || true
-          # Upload entire dist for now
-          echo "::set-output name=distpath::dist"
+          # Upload entire dist for now; expose path via GITHUB_OUTPUT
+          echo "distpath=dist" >> "$GITHUB_OUTPUT"
 
       - name: Upload bundle artifacts
         uses: actions/upload-artifact@v4

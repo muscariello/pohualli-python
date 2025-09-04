@@ -4,7 +4,7 @@ version = "0.2.3"
 requires-python = ">=3.10"
 description = "Python port (in progress) of the Turbo Pascal Pohualli calendrical utility"
 authors = [ { name = "Port Maintainers" } ]
-license = "GPL-3.0-only"
+license = { file = "LICENSE" }
 readme = "README.md"
 keywords = ["maya","aztec","calendar","mesoamerican","astronomy","long-count","tzolkin","haab"]
 classifiers = [
