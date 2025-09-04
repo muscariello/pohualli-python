@@ -9,8 +9,7 @@ jobs:
   build-desktop:
     runs-on: ${{ matrix.os }}
     permissions:
-      contents: read      # Needed to read repo contents
-      id-token: write     # Required for OIDC token to generate provenance
+      contents: read      # Minimal permissions for checkout
     strategy:
       fail-fast: false
       matrix:
@@ -58,9 +57,4 @@ jobs:
           path: dist/**/*
           if-no-files-found: warn
 
-      - name: Generate build attestation
-        uses: actions/attest-build-provenance@v1
-        if: success()
-        with:
-          subject-path: dist/**
 
