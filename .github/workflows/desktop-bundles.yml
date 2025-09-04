@@ -39,7 +39,8 @@ jobs:
       - name: Package (if supported)
         run: |
           echo "Attempting package step"
-          briefcase package || echo "Package step not implemented for this platform"
+          # Use ad-hoc signing & suppress interactive identity selection in CI
+          briefcase package --adhoc-sign --no-input || echo "Package step not implemented for this platform"
 
       - name: Collect artifacts path
         id: paths
