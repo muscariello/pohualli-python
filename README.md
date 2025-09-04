@@ -72,6 +72,7 @@ Then run CLI (`pohualli ...`) or web app (`uvicorn pohualli.webapp:app --reload`
 │       └── python-api.md        # Python API examples
 ├── pohualli/
 │   ├── __init__.py              # Public API exports (compute_composite, etc.)
+│   ├── __main__.py              # Module entry point (python -m pohualli / bundle)
 │   ├── autocorr.py              # Derive correction offsets from constraints
 │   ├── aztec.py                 # Aztec (Tonalpohualli) name tables & helpers
 │   ├── calendar_dates.py        # Gregorian/Julian conversions & weekday calc
