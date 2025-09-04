@@ -4,6 +4,32 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project (for now) follows simple semantic versioning (MAJOR.MINOR.PATCH).
 
+## [0.2.5] - 2025-09-04
+### Added
+- _TBD_
+
+### Changed
+- _TBD_
+
+### Fixed
+- _TBD_
+
+### Internal
+- Prepare release scaffolding.
+
+## [0.2.4] - 2025-09-04
+### Added
+- Desktop bundle workflow (macOS & Windows) producing release assets (ZIP + MSI) with automated upload on tagged releases.
+- Installation documentation for desktop bundles (README, `docs/usage/desktop.md`, quickstart updates).
+- `__main__.py` entry point enabling `python -m pohualli` and smoother bundled execution.
+
+### Changed
+- README install section expanded (PyPI vs desktop vs source) and structure tree updated with `__main__.py`.
+
+### Internal
+- Version bump to align PyPI/package metadata and desktop Briefcase config.
+
+
 ## [0.2.3] - 2025-09-04
 ### Added
 - PyPI badge and direct package link in README.
@@ -89,3 +115,4 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 [0.2.1]: https://github.com/muscariello/pohualli-python/releases/tag/v0.2.1
 [0.2.2]: https://github.com/muscariello/pohualli-python/releases/tag/v0.2.2
 [0.2.3]: https://github.com/muscariello/pohualli-python/releases/tag/v0.2.3
+[0.2.4]: https://github.com/muscariello/pohualli-python/releases/tag/v0.2.4
