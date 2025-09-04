@@ -24,6 +24,8 @@ pip install -e .[dev,web]
 - PyPI (library + CLI): `pip install pohualli` (add `[web]` for UI)
 - Desktop bundle (macOS/Windows): download artifact from CI or Release and run the app directly (no Python needed)
 
+Latest release downloads: https://github.com/muscariello/pohualli-python/releases
+
 macOS first-run approval (unsigned/ad-hoc): Control-click the app, choose Open, then confirm. Subsequent launches are normal.
 
 Windows SmartScreen: Click “More info” → “Run anyway” if warned (unsigned build).

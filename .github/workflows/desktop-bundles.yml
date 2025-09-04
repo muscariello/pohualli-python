@@ -4,12 +4,11 @@ on:
   workflow_dispatch:
   push:
     branches: [ main ]
+    tags: [ 'v*.*.*' ]
 
 jobs:
   build-desktop:
     runs-on: ${{ matrix.os }}
-    permissions:
-      contents: read      # Minimal permissions for checkout
     strategy:
       fail-fast: false
       matrix:
@@ -38,23 +37,70 @@ jobs:
       - name: Package (if supported)
         run: |
           echo "Attempting package step"
-          # Use ad-hoc signing & suppress interactive identity selection in CI
-          briefcase package --adhoc-sign --no-input || echo "Package step not implemented for this platform"
+          briefcase package --no-input || echo "Package step not implemented for this platform"
 
-      - name: Collect artifacts path
-        id: paths
+      - name: Prepare release asset (macOS)
+        if: matrix.os == 'macos-latest'
+        run: |
+          set -e
+          VERSION="${GITHUB_REF_NAME#v}"
+          APP_DIR="dist/Pohualli.app"
+          if [ -d "$APP_DIR" ]; then
+            (cd dist && zip -r "Pohualli-${VERSION}-macOS.zip" Pohualli.app)
+          else
+            echo "Mac app bundle not found at $APP_DIR" >&2
+            exit 1
+          fi
+
+      - name: Prepare release asset (Windows)
+        if: matrix.os == 'windows-latest'
         shell: bash
         run: |
-          echo "Listing dist directory"
-          ls -R dist || true
-          # Upload entire dist for now; expose path via GITHUB_OUTPUT
-          echo "distpath=dist" >> "$GITHUB_OUTPUT"
+          set -e
+          VERSION="${GITHUB_REF_NAME#v}"
+            MSI_ORIG=$(ls dist/*.msi 2>/dev/null | head -n1 || true)
+          if [ -n "$MSI_ORIG" ]; then
+            cp "$MSI_ORIG" "dist/Pohualli-${VERSION}-windows.msi"
+          else
+            echo "No MSI found in dist/" >&2
+            exit 1
+          fi
+
+      - name: List dist contents
+        shell: bash
+        run: |
+          echo "Listing dist directory"; ls -R dist || true
 
       - name: Upload bundle artifacts
         uses: actions/upload-artifact@v4
         with:
           name: desktop-${{ matrix.os }}
-          path: dist/**/*
+          path: |
+            dist/Pohualli-*-macOS.zip
+            dist/Pohualli-*-windows.msi
+            dist/Pohualli.app/**
           if-no-files-found: warn
+
+  publish-release-assets:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build-desktop
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Display downloaded
+        run: ls -R artifacts
+
+      - name: Create GitHub Release & upload assets
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            artifacts/**/Pohualli-*-macOS.zip
+            artifacts/**/Pohualli-*-windows.msi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 
