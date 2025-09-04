@@ -4,8 +4,20 @@ This guide shows the fastest way to explore Pohualli.
 
 ## 1. Install
 
+Choose one:
+
+PyPI (CLI & library):
 ```bash
-pip install -e .[web,docs]
+pip install pohualli
+```
+With web UI extras:
+```bash
+pip install "pohualli[web]"
+```
+Desktop App (macOS / Windows): download bundle artifact from a Release (no Python needed). First macOS run: Control-click → Open.
+From source (dev):
+```bash
+pip install -e .[dev,web,docs]
 ```
 
 ## 2. CLI
