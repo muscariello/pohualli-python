@@ -39,6 +39,7 @@ PyPI page: https://pypi.org/project/pohualli/
 │   └── usage/                   # How-to guides
 │       ├── quickstart.md        # Quick installation & first run
 │       ├── cli.md               # CLI usage details
+│       ├── desktop.md           # Desktop bundles (Briefcase) guide
 │       └── python-api.md        # Python API examples
 ├── pohualli/
 │   ├── __init__.py              # Public API exports (compute_composite, etc.)
@@ -49,6 +50,7 @@ PyPI page: https://pypi.org/project/pohualli/
 │   ├── composite.py             # High-level composite computation orchestrator
 │   ├── correlations.py          # Correlation (New Era) preset definitions
 │   ├── cycle819.py              # 819‑day cycle station & direction colors
+│   ├── desktop_app.py           # Desktop launcher for packaged app (Briefcase)
 │   ├── maya.py                  # Core Maya calendar math (Tzolk'in / Haab / LC)
 │   ├── moon.py                  # Moon phase / anomaly heuristics
 │   ├── planets.py               # Planetary synodic value helpers
@@ -59,16 +61,17 @@ PyPI page: https://pypi.org/project/pohualli/
 │   ├── yearbear.py              # Year Bearer packing/unpacking utilities
 │   └── zodiac.py                # Star & earth zodiac angle computations
 └── tests/                       # Pytest suite (≥90% per-file coverage)
-  ├── test_autocorr*.py        # Auto-correction derivation tests
-  ├── test_calendar*.py        # Calendar date conversion edge cases
-  ├── test_cli*.py             # CLI command & JSON output coverage
-  ├── test_cycle_planets.py    # 819-cycle & planetary helpers
+  ├── test_autocorr*.py            # Auto-correction derivation tests
+  ├── test_calendar*.py            # Calendar date conversion edge cases
+  ├── test_cli*.py                 # CLI command & JSON output coverage
+  ├── test_cycle_planets.py        # 819-cycle & planetary helpers
+  ├── test_desktop_app.py          # Desktop launcher behavior
   ├── test_extra_cycles_yearbear_moon.py  # Mixed composite cycle branches
-  ├── test_maya*.py            # Maya calendar arithmetic & validation
-  ├── test_moon_zodiac.py      # Moon + zodiac computations
-  ├── test_web*.py             # FastAPI endpoint & template rendering
-  ├── test_yearbear_cli.py     # Year bearer & related CLI paths
-  └── test_zodiac_extra.py     # Additional zodiac heuristic coverage
+  ├── test_maya*.py                # Maya calendar arithmetic & validation
+  ├── test_moon_zodiac.py          # Moon + zodiac computations
+  ├── test_web*.py                 # FastAPI endpoint & template rendering
+  ├── test_yearbear_cli.py         # Year bearer & related CLI paths
+  └── test_zodiac_extra.py         # Additional zodiac heuristic coverage
 ```
 
 ## Python Usage
