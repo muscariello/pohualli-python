@@ -1,126 +1,130 @@
 # Pohualli (Python Port)
 
-[![CI](https://github.com/muscariello/pohualli-python/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/muscariello/pohualli-python/actions/workflows/ci.yml) [![Coverage](https://codecov.io/gh/muscariello/pohualli-python/branch/main/graph/badge.svg)](https://codecov.io/gh/muscariello/pohualli-python) [![Docs](https://img.shields.io/badge/docs-GitHub%20Pages-blue)](https://muscariello.github.io/pohualli-python/) [![Changelog](https://img.shields.io/badge/changelog-latest-orange)](CHANGELOG.md)
+[![CI](https://github.com/muscariello/pohualli-python/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/muscariello/pohualli-python/actions/workflows/ci.yml) [![Coverage](https://codecov.io/gh/muscariello/pohualli-python/branch/main/graph/badge.svg)](https://codecov.io/gh/muscariello/pohualli-python) [![Docs](https://img.shields.io/badge/docs-GitHub%20Pages-blue)](https://muscariello.github.io/pohualli-python/) [![PyPI](https://img.shields.io/pypi/v/pohualli.svg)](https://pypi.org/project/pohualli/) [![Changelog](https://img.shields.io/badge/changelog-latest-orange)](CHANGELOG.md)
 
-Work-in-progress Python reimplementation of the original Turbo Pascal Pohualli calendar utility.
+Python reimplementation of the original Turbo Pascal Pohualli calendrical utility.
 
-## Goals
+## Highlights
 
-- Faithful translation of core calendrical calculations (Maya & Aztec systems)
-- 819-day cycle, planetary synodic values, year bearer computation
-- Configurable New Era and correction parameters
-- Composite API producing structured results
-- Config persistence (save/load JSON)
-- Clear, testable Python modules separated from any UI
-- Modern packaging & minimal dependencies
+- Maya & Aztec core calculations (Tzolk'in, Haab, Long Count, Year Bearer)
+- 819‑day cycle, planetary synodic helpers, zodiac & moon heuristics
+- Correlation ("New Era") presets + on-the-fly overrides
+- Auto-derivation of correction offsets from partial constraints
+- Unified composite API & high-coverage test suite (≥90% per file)
+- FastAPI web UI + CLI + JSON output
+
+## Install
+```
+pip install pohualli
+```
+PyPI page: https://pypi.org/project/pohualli/
 
 ## Structure
-
 ```
-pohualli/
-  __init__.py
-  autocorr.py          # Auto-derivation of correction offsets
-  aztec.py             # Aztec-specific name tables & conversions
-  calendar_dates.py    # Gregorian / Julian conversion helpers
-  cli.py               # Command-line interface entry point
-  composite.py         # High-level composite computation
-  correlations.py      # Correlation preset management
-  cycle819.py          # 819-day cycle station & value
-  maya.py              # Core Tzolk'in / Haab / Long Count logic
-  moon.py              # Moon age & eclipse heuristic
-  planets.py           # Planet synodic computations
-  templates/           # Web UI Jinja2 templates
-  types.py             # Dataclasses for config & corrections
-  webapp.py            # FastAPI application
-  yearbear.py          # Year bearer packing/unpacking
-  zodiac.py            # Star & earth zodiac logic
-tests/
-  test_autocorr.py
-  test_calendar_parity.py
-  test_composite.py
-  test_cycle_planets.py
-  test_maya.py
-  test_moon_zodiac.py
-  test_web.py
-  test_yearbear_cli.py
-docs/                  # MkDocs documentation sources
-mkdocs.yml             # MkDocs configuration
-Dockerfile
-docker-compose.yml
-pyproject.toml
-LICENSE
-README.md
+.
+├── CHANGELOG.md                 # Project changelog / release notes
+├── LICENSE                      # GPL-3.0-only license text
+├── README.md                    # Overview & usage (this file)
+├── docker-compose.yml           # Convenience orchestration for web app
+├── Dockerfile                   # Multi-arch container build definition
+├── mkdocs.yml                   # MkDocs Material documentation config
+├── pyproject.toml               # Packaging & dependency metadata
+├── docs/                        # Documentation markdown sources
+├── pohualli/
+│   ├── __init__.py              # Public API exports (compute_composite, etc.)
+│   ├── autocorr.py              # Derive correction offsets from constraints
+│   ├── aztec.py                 # Aztec (Tonalpohualli) name tables & helpers
+│   ├── calendar_dates.py        # Gregorian/Julian conversions & weekday calc
+│   ├── cli.py                   # Command line interface entry point
+│   ├── composite.py             # High-level composite computation orchestrator
+│   ├── correlations.py          # Correlation (New Era) preset definitions
+│   ├── cycle819.py              # 819‑day cycle station & direction colors
+│   ├── maya.py                  # Core Maya calendar math (Tzolk'in / Haab / LC)
+│   ├── moon.py                  # Moon phase / anomaly heuristics
+│   ├── planets.py               # Planetary synodic value helpers
+│   ├── templates/
+│   │   └── index.html           # Web UI Jinja2 template
+│   ├── types.py                 # Dataclasses & global correction state types
+│   ├── webapp.py                # FastAPI application factory / routes
+│   ├── yearbear.py              # Year Bearer packing/unpacking utilities
+│   └── zodiac.py                # Star & earth zodiac angle computations
+└── tests/                       # Pytest suite (≥90% per-file coverage)
+  ├── test_autocorr*.py        # Auto-correction derivation tests
+  ├── test_calendar*.py        # Calendar date conversion edge cases
+  ├── test_cli*.py             # CLI command & JSON output coverage
+  ├── test_cycle_planets.py    # 819-cycle & planetary helpers
+  ├── test_extra_cycles_yearbear_moon.py  # Mixed composite cycle branches
+  ├── test_maya*.py            # Maya calendar arithmetic & validation
+  ├── test_moon_zodiac.py      # Moon + zodiac computations
+  ├── test_web*.py             # FastAPI endpoint & template rendering
+  ├── test_yearbear_cli.py     # Year bearer & related CLI paths
+  └── test_zodiac_extra.py     # Additional zodiac heuristic coverage
 ```
 
-## Composite Usage (Python)
+## Python Usage
 ```python
 from pohualli import compute_composite
-res = compute_composite(2451545)
-print(res.tzolkin_name, res.long_count, res.star_zodiac_name)
+result = compute_composite(2451545)
+print(result.tzolkin_name, result.long_count, result.star_zodiac_name)
 ```
 
 ## CLI Examples
 ```
-# Human-readable
+# Basic human-readable conversion
+pohualli from-jdn 2451545
+
+# Year Bearer reference override
 pohualli from-jdn 2451545 --year-bearer-ref 0 0
-# JSON output
-pohualli from-jdn 2451545 --json > result.json
-# Override New Era
-pohualli from-jdn 2451545 --new-era 584285 --json
-# Save & load config
+
+# JSON output (pretty with jq)
+pohualli from-jdn 2451545 --json | jq .long_count
+
+# Override New Era just for this invocation
+pohualli from-jdn 2451545 --new-era 584283 --json
+
+# Apply a named correlation preset globally
+pohualli apply-correlation gmt-584283
+
+# List available correlations
+pohualli list-correlations
+
+# Derive corrections from partial constraint (tzolkin only)
+pohualli derive-autocorr 2451545 --tzolkin "4 Ahau"
+
+# Derive with multiple constraints (tzolkin + haab + g)
+pohualli derive-autocorr 2451545 --tzolkin "4 Ahau" --haab "3 Pop" --g 5
+
+# Persist and restore configuration
 pohualli save-config config.json
 pohualli load-config config.json
+
+# Full JSON composite into a file
+pohualli from-jdn 2451545 --json > composite.json
 ```
 
-## Tests
+## Web App
 ```
-python -m pytest -q
-```
-
-## Web UI
-Install web extras and run development server:
-```
-python -m pip install -e .[web]
 uvicorn pohualli.webapp:app --reload
 ```
-Open http://127.0.0.1:8000 in a browser.
-
-## Documentation
-
-Published docs (main branch): https://muscariello.github.io/pohualli-python/
-
+Open http://127.0.0.1:8000
 
 ## Docker
-
-Build locally:
-
-```bash
+```
 docker build -t pohualli .
 docker run --rm -p 8000:8000 pohualli
 ```
-
-### Pre-built Images (GitHub Container Registry)
-
-Multi-architecture images (linux/amd64, linux/arm64) are published automatically from `main` and version tags via GitHub Actions.
-
-Pull latest:
-
-```bash
-docker pull ghcr.io/muscariello/pohualli-python:latest
+Or use the published image:
 ```
-
-Run:
-
-```bash
 docker run --rm -p 8000:8000 ghcr.io/muscariello/pohualli-python:latest
 ```
 
-Use a specific version tag:
-
-```bash
-docker pull ghcr.io/muscariello/pohualli-python:v1.2.3
+## Testing
+```
+pytest -q
 ```
 
-## References
+## License
+GPL-3.0-only
 
-* Sołtysiak, Arkadiusz & Lebeuf, Arnold. (2011). Pohualli 1.01. A computer simulation of Mesoamerican calendar systems. 8(49), 165–168.
+## Reference
+Sołtysiak, A. & Lebeuf, A. (2011). Pohualli 1.01. A computer simulation of Mesoamerican calendar systems. 8(49), 165–168. [ResearchGate](https://www.researchgate.net/publication/270956742_2011_Pohualli_101_A_computer_simulation_of_Mesoamerican_calendar_systems)
