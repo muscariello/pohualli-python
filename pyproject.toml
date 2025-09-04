@@ -61,6 +61,7 @@ skip_covered = false
 project_name = "Pohualli"
 bundle = "io.github.muscariello"
 url = "https://github.com/muscariello/pohualli-python"
+license.file = "LICENSE"
 author = "Port Maintainers"
 
 [tool.briefcase.app.pohualli]
