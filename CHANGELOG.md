@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project (for now) follows simple semantic versioning (MAJOR.MINOR.PATCH).
 
+## [0.2.2] - 2025-09-04
+### Fixed
+- Updated `TemplateResponse` usage to new signature (`TemplateResponse(request, name, context)`) removing Starlette deprecation warning.
+
+### Internal
+- Ensured HTML templates packaged via `tool.setuptools.package-data` (fixing CI `TemplateNotFound`).
+
 ## [0.2.1] - 2025-09-04
 ### Added
 - Added scholarly citation (Sołtysiak & Lebeuf 2011) to README and calendars concepts page.

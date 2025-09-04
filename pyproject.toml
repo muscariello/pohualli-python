@@ -1,6 +1,6 @@
 [project]
 name = "pohualli"
-version = "0.2.1"
+version = "0.2.2"
 requires-python = ">=3.10"
 description = "Python port (in progress) of the Turbo Pascal Pohualli calendrical utility"
 authors = [ { name = "Port Maintainers" } ]
