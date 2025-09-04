@@ -120,3 +120,7 @@ Use a specific version tag:
 ```bash
 docker pull ghcr.io/muscariello/pohualli-python:v1.2.3
 ```
+
+## References
+
+* Sołtysiak, Arkadiusz & Lebeuf, Arnold. (2011). Pohualli 1.01. A computer simulation of Mesoamerican calendar systems. 8(49), 165–168.

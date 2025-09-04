@@ -62,3 +62,4 @@ color_index = station_to_dir_col(station, 0)  # 1..4
 - Long Count: https://en.wikipedia.org/wiki/Mesoamerican_Long_Count_calendar
 - 819-day count (specific Maya calendar section): https://en.wikipedia.org/wiki/Maya_calendar#819-day_count
 - Year Bearer (specific Maya calendar section): https://en.wikipedia.org/wiki/Maya_calendar#Year_Bearer
+ - Sołtysiak, Arkadiusz & Lebeuf, Arnold. (2011). Pohualli 1.01. A computer simulation of Mesoamerican calendar systems. 8(49), 165–168.
