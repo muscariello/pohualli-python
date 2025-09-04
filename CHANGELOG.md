@@ -4,12 +4,22 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project (for now) follows simple semantic versioning (MAJOR.MINOR.PATCH).
 
-## [0.2.2] - 2025-09-04
-### Fixed
-- Updated `TemplateResponse` usage to new signature (`TemplateResponse(request, name, context)`) removing Starlette deprecation warning.
+## [0.2.3] - 2025-09-04
+### Added
+- PyPI badge and direct package link in README.
+- Expanded README file tree with per-file descriptions and docs sub-tree.
+- ResearchGate link for scholarly reference.
+
+### Changed
+- README reorganized (highlights, consolidated structure, clarified install section).
 
 ### Internal
-- Ensured HTML templates packaged via `tool.setuptools.package-data` (fixing CI `TemplateNotFound`).
+- Documentation-only release; no functional code changes.
+
+## [0.2.2] - 2025-09-04
+### Fixed
+
+### Internal
 
 ## [0.2.1] - 2025-09-04
 ### Added
@@ -77,3 +87,5 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 [0.2.0]: https://github.com/muscariello/pohualli-python/releases/tag/v0.2.0
 [0.1.0]: https://github.com/muscariello/pohualli-python/releases/tag/v0.1.0
 [0.2.1]: https://github.com/muscariello/pohualli-python/releases/tag/v0.2.1
+[0.2.2]: https://github.com/muscariello/pohualli-python/releases/tag/v0.2.2
+[0.2.3]: https://github.com/muscariello/pohualli-python/releases/tag/v0.2.3
