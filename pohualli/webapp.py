@@ -127,23 +127,26 @@ async def home(
             comp = compute_composite(jdn).to_dict()
         except Exception as e:  # broad catch for UI feedback
             error = str(e)
-    return templates.TemplateResponse('index.html', {
-        'request': request,
-        'comp': comp,
-    'new_era': new_era_i,
-    'ybm': ybm_i,
-    'ybd': ybd_i,
-    'corr': {
-        'tzolkin': DEFAULT_CONFIG.tzolkin_haab_correction.tzolkin,
-        'tzolkin_name': CORRECTIONS.cTzolkinStr,
-        'haab': DEFAULT_CONFIG.tzolkin_haab_correction.haab,
-        'g': DEFAULT_CONFIG.tzolkin_haab_correction.g,
-        'lcd': DEFAULT_CONFIG.tzolkin_haab_correction.lcd,
-        'week': CORRECTIONS.cWeekCorrection,
-        'c819_station': DEFAULT_CONFIG.cycle819_station_correction,
-        'c819_dir': DEFAULT_CONFIG.cycle819_dir_color_correction,
-    },
-    'error': error,
-    'presets': list_presets(),
-    'active_preset': active_preset_name(),
-    })
+    return templates.TemplateResponse(
+        request,
+        'index.html',
+        {
+            'comp': comp,
+            'new_era': new_era_i,
+            'ybm': ybm_i,
+            'ybd': ybd_i,
+            'corr': {
+                'tzolkin': DEFAULT_CONFIG.tzolkin_haab_correction.tzolkin,
+                'tzolkin_name': CORRECTIONS.cTzolkinStr,
+                'haab': DEFAULT_CONFIG.tzolkin_haab_correction.haab,
+                'g': DEFAULT_CONFIG.tzolkin_haab_correction.g,
+                'lcd': DEFAULT_CONFIG.tzolkin_haab_correction.lcd,
+                'week': CORRECTIONS.cWeekCorrection,
+                'c819_station': DEFAULT_CONFIG.cycle819_station_correction,
+                'c819_dir': DEFAULT_CONFIG.cycle819_dir_color_correction,
+            },
+            'error': error,
+            'presets': list_presets(),
+            'active_preset': active_preset_name(),
+        }
+    )

@@ -44,6 +44,9 @@ include-package-data = true
 include = ["pohualli*"]
 exclude = ["tests*"]
 
+[tool.setuptools.package-data]
+"pohualli" = ["templates/*.html"]
+
 [tool.coverage.run]
 branch = true
 source = ["pohualli"]
