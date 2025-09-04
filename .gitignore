@@ -24,3 +24,6 @@ dist/
 *.log
 *.tmp
 *.DS_Store
+coverage.xml
+.coverage
+.coverage.*
