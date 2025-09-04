@@ -29,7 +29,17 @@ PyPI page: https://pypi.org/project/pohualli/
 ├── Dockerfile                   # Multi-arch container build definition
 ├── mkdocs.yml                   # MkDocs Material documentation config
 ├── pyproject.toml               # Packaging & dependency metadata
-├── docs/                        # Documentation markdown sources
+├── docs/                        # Documentation markdown sources (MkDocs)
+│   ├── index.md                 # Landing page
+│   ├── dev.md                   # Development & contributing notes
+│   ├── license.md               # License blurb for docs site
+│   ├── concepts/                # Conceptual explanations
+│   │   ├── calendars.md         # Calendar systems overview
+│   │   └── configuration.md     # Correlations & correction parameters
+│   └── usage/                   # How-to guides
+│       ├── quickstart.md        # Quick installation & first run
+│       ├── cli.md               # CLI usage details
+│       └── python-api.md        # Python API examples
 ├── pohualli/
 │   ├── __init__.py              # Public API exports (compute_composite, etc.)
 │   ├── autocorr.py              # Derive correction offsets from constraints
