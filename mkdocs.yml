@@ -11,6 +11,7 @@ nav:
       - Quick Start: usage/quickstart.md
       - CLI: usage/cli.md
       - Python API: usage/python-api.md
+  - Desktop Bundles: usage/desktop.md
   - Concepts:
       - Calendars: concepts/calendars.md
       - Corrections & Config: concepts/configuration.md
