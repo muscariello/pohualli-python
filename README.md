@@ -1,6 +1,6 @@
 # Pohualli (Python Port)
 
-[![Docs](https://img.shields.io/badge/docs-GitHub%20Pages-blue)](https://muscariello.github.io/pohualli-python/)
+[![CI](https://github.com/muscariello/pohualli-python/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/muscariello/pohualli-python/actions/workflows/ci.yml) [![Coverage](https://codecov.io/gh/muscariello/pohualli-python/branch/main/graph/badge.svg)](https://codecov.io/gh/muscariello/pohualli-python) [![Docs](https://img.shields.io/badge/docs-GitHub%20Pages-blue)](https://muscariello.github.io/pohualli-python/)
 
 Work-in-progress Python reimplementation of the original Turbo Pascal Pohualli calendar utility.
 
@@ -17,20 +17,39 @@ Work-in-progress Python reimplementation of the original Turbo Pascal Pohualli c
 ## Structure
 
 ```
-py/
-  pohualli/
-    composite.py        # High-level conversion + config save/load
-    cli.py              # CLI with JSON output & config management
-    __init__.py
-    maya.py
-    aztec.py
-    cycle819.py
-    planets.py
-    yearbear.py
-  tests/
-    test_maya.py
-    test_cycle_planets.py
-    test_yearbear_cli.py
+pohualli/
+  __init__.py
+  autocorr.py          # Auto-derivation of correction offsets
+  aztec.py             # Aztec-specific name tables & conversions
+  calendar_dates.py    # Gregorian / Julian conversion helpers
+  cli.py               # Command-line interface entry point
+  composite.py         # High-level composite computation
+  correlations.py      # Correlation preset management
+  cycle819.py          # 819-day cycle station & value
+  maya.py              # Core Tzolk'in / Haab / Long Count logic
+  moon.py              # Moon age & eclipse heuristic
+  planets.py           # Planet synodic computations
+  templates/           # Web UI Jinja2 templates
+  types.py             # Dataclasses for config & corrections
+  webapp.py            # FastAPI application
+  yearbear.py          # Year bearer packing/unpacking
+  zodiac.py            # Star & earth zodiac logic
+tests/
+  test_autocorr.py
+  test_calendar_parity.py
+  test_composite.py
+  test_cycle_planets.py
+  test_maya.py
+  test_moon_zodiac.py
+  test_web.py
+  test_yearbear_cli.py
+docs/                  # MkDocs documentation sources
+mkdocs.yml             # MkDocs configuration
+Dockerfile
+docker-compose.yml
+pyproject.toml
+LICENSE
+README.md
 ```
 
 ## Composite Usage (Python)
