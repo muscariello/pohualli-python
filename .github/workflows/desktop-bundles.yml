@@ -47,8 +47,8 @@ jobs:
         run: |
           echo "Listing dist directory"
           ls -R dist || true
-          # Upload entire dist for now
-          echo "::set-output name=distpath::dist"
+          # Upload entire dist for now; expose path via GITHUB_OUTPUT
+          echo "distpath=dist" >> "$GITHUB_OUTPUT"
 
       - name: Upload bundle artifacts
         uses: actions/upload-artifact@v4
