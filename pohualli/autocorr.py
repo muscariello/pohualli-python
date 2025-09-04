@@ -20,7 +20,7 @@ from .maya import (
     julian_day_to_long_count
 )
 from .yearbear import year_bearer_packed, unpack_yb_str, unpack_yb_val
-from .types import TzolkinHaabCorrection, SheetWindowConfig
+from .types import TzolkinHaabCorrection, SheetWindowConfig, DEFAULT_CONFIG, CORRECTIONS, ABSOLUTE
 from .cycle819 import julian_day_to_819_station, julian_day_to_819_value, station_to_dir_col
 
 
@@ -69,6 +69,75 @@ def _parse_year_bearer(spec: str) -> tuple[int,int]:
             return val, i
     raise ValueError('Unknown tzolkin name in year bearer')
 
+def _tzolkin_value_with_offset(jdn: int, tz_off: int) -> int:
+    day = jdn + tz_off + 2 + CORRECTIONS.cTzolkinVal
+    if day < 0:
+        day += (165191049 * 13)
+    day_mod = ((day % 13) + 13) % 13
+    day_mod += 4
+    if day_mod > 13:
+        day_mod -= 13
+    return day_mod
+
+def _tzolkin_name_index_with_offset(jdn: int, tz_off: int) -> int:
+    day = jdn + tz_off + 2 + CORRECTIONS.cTzolkinStr
+    if day < 0:
+        day += (107374182 * 20)
+    day_mod = ((day % 20) + 20) % 20
+    day_mod += 15
+    if day_mod >= 20:
+        day_mod -= 20
+    return day_mod
+
+def _haab_packed_with_offset(jdn: int, haab_off: int) -> int:
+    day = jdn + haab_off + 2 + CORRECTIONS.cHaabVal
+    if day >= 0:
+        day_mod = day % 365
+        day_mod += 63
+        if day_mod >= 365:
+            day_mod -= 365
+    else:
+        day_abs = -day
+        day_mod = day_abs % 365
+        day_mod = 365 - (day_mod - 63)
+        if day_mod >= 365:
+            day_mod -= 365
+    return day_mod
+
+def _g_value_with_offset(jdn: int, g_off: int) -> int:
+    day = jdn + g_off + 2 + CORRECTIONS.cGValue
+    if day < 0:
+        day += (238609294 * 9)
+    day_mod = ((day % 9) + 9) % 9
+    day_mod += 4
+    if day_mod > 9:
+        day_mod -= 9
+    return day_mod
+
+def _long_count_with_offset(jdn: int, lcd_off: int):
+    day = jdn + lcd_off + 2 + CORRECTIONS.cLongCount
+    counter = False
+    new_era = ABSOLUTE.new_era
+    if day < (new_era - 1872000):  # ERA_LENGTH
+        counter = True
+        day += (1145 * 1872000)
+    day = day + (1872000 - new_era)
+    out = []
+    mult = 13 * 20 * 20 * 18 * 20
+    b = day // mult; out.append(b); day -= b * mult
+    mult = 20 * 20 * 18 * 20
+    k = day // mult; out.append(k); day -= k * mult
+    mult = 20 * 18 * 20
+    t = day // mult; out.append(t); day -= t * mult
+    mult = 18 * 20
+    u = day // mult; out.append(u); day -= u * mult
+    mult = 20
+    v = day // mult; out.append(v)
+    w = day - v * mult; out.append(w)
+    if counter:
+        out[0] -= 1145
+    return tuple(out)  # type: ignore
+
 def derive_auto_corrections(
     jdn: int,
     *,
@@ -96,9 +165,8 @@ def derive_auto_corrections(
         t_val_target, t_name_idx_target = _parse_tzolkin(tzolkin)
         found = False
         for off in range(260):
-            cfg.tzolkin_haab_correction.tzolkin = off
-            if (julian_day_to_tzolkin_value(jdn) == t_val_target and
-                julian_day_to_tzolkin_name_index(jdn) == t_name_idx_target):
+            if (_tzolkin_value_with_offset(jdn, off) == t_val_target and
+                _tzolkin_name_index_with_offset(jdn, off) == t_name_idx_target):
                 tz_offset = off
                 found = True
                 break
@@ -110,8 +178,7 @@ def derive_auto_corrections(
         h_day_target, h_month_target = _parse_haab(haab)
         found = False
         for off in range(365):
-            cfg.tzolkin_haab_correction.haab = off
-            packed = julian_day_to_haab_packed(jdn)
+            packed = _haab_packed_with_offset(jdn, off)
             hm = unpack_haab_month(packed)
             hd = unpack_haab_value(packed)
             if hm == h_month_target and hd == h_day_target:
@@ -125,8 +192,7 @@ def derive_auto_corrections(
     if g_value is not None:
         found = False
         for off in range(9):
-            cfg.tzolkin_haab_correction.g = off
-            if julian_day_to_g_value(jdn) == g_value:
+            if _g_value_with_offset(jdn, off) == g_value:
                 g_offset = off
                 found = True
                 break
@@ -137,17 +203,14 @@ def derive_auto_corrections(
     if long_count:
         parts = long_count.strip().split('.')
         lc_numbers = [int(p) for p in parts]
-        if len(lc_numbers) == 5:  # Insert leading 1 like Pascal does
+        if len(lc_numbers) == 5:
             lc_numbers = [1] + lc_numbers
         if len(lc_numbers) != 6:
             raise ValueError('Long Count must have 5 or 6 components separated by dots')
-        # We simulate by varying lcd offset so computation matches target long count
-        # Brute force a window of +/- 5000 days (heuristic)
         target = tuple(lc_numbers)
         found = False
         for off in range(-5000, 5001):
-            cfg.tzolkin_haab_correction.lcd = off
-            if julian_day_to_long_count(jdn) == target:
+            if _long_count_with_offset(jdn, off) == target:
                 lcd_offset = off
                 found = True
                 break
@@ -159,24 +222,28 @@ def derive_auto_corrections(
     yb_day = None
     if year_bearer:
         yb_val_target, yb_name_idx_target = _parse_year_bearer(year_bearer)
-        # Need haab month/day of date for year bearer algorithm; we already can compute with current offsets
-        # Search all 19*20 combos
-        saved_month = cfg.year_bearer_str
-        saved_day = cfg.year_bearer_val
+        # compute target date haab components using derived haab_offset (if any search performed else 0)
+        packed_date = _haab_packed_with_offset(jdn, haab_offset)
+        date_hm = unpack_haab_month(packed_date)
+        date_hd = unpack_haab_value(packed_date)
+        date_pack = (date_hm * 20) + date_hd
         for m in range(19):
             for d in range(20):
-                cfg.year_bearer_str = m
-                cfg.year_bearer_val = d
-                packed = year_bearer_packed(unpack_haab_month(julian_day_to_haab_packed(jdn)),
-                                             unpack_haab_value(julian_day_to_haab_packed(jdn)), jdn, config=cfg)
-                if unpack_yb_str(packed) == yb_name_idx_target and unpack_yb_val(packed) == yb_val_target:
+                yb_pack = (m * 20) + d
+                interval = date_pack - yb_pack
+                if interval < 0:
+                    interval += 365
+                if DEFAULT_CONFIG.t_aztec:
+                    interval -= 364
+                base_jdn = jdn - interval
+                name_idx = _tzolkin_name_index_with_offset(base_jdn, tz_offset)
+                val = _tzolkin_value_with_offset(base_jdn, tz_offset)
+                if name_idx == yb_name_idx_target and val == yb_val_target:
                     yb_month = m
                     yb_day = d
                     break
             if yb_month is not None:
                 break
-        cfg.year_bearer_str = saved_month
-        cfg.year_bearer_val = saved_day
         if yb_month is None:
             raise ValueError('Unable to derive year bearer reference')
 
