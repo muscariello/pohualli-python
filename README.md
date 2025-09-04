@@ -40,6 +40,8 @@ Windows:
 
 Updates: replace the old bundle with the new one (no persistent user data yet).
 
+Latest release downloads: https://github.com/muscariello/pohualli-python/releases
+
 ### Option 3: From Source (development)
 ```
 git clone https://github.com/muscariello/pohualli-python.git
