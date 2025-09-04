@@ -26,7 +26,8 @@ Source = "https://github.com/muscariello/pohualli-python"
 Issues = "https://github.com/muscariello/pohualli-python/issues"
 
 [project.optional-dependencies]
-dev = ["pytest","pytest-cov","coverage"]
+# Pin coverage to a version that properly supports Python 3.13 frame evaluation
+dev = ["pytest","pytest-cov","coverage>=7.6.0"]
 web = ["fastapi","uvicorn","jinja2","httpx"]
 docs = ["mkdocs>=1.6.0","mkdocs-material>=9.5.0","mkdocs-gen-files","mkdocs-literate-nav","mkdocs-section-index"]
 
