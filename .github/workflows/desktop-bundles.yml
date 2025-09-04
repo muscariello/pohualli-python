@@ -8,6 +8,9 @@ on:
 jobs:
   build-desktop:
     runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read      # Needed to read repo contents
+      id-token: write     # Required for OIDC token to generate provenance
     strategy:
       fail-fast: false
       matrix:
