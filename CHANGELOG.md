@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project (for now) follows simple semantic versioning (MAJOR.MINOR.PATCH).
 
+## [0.2.1] - 2025-09-04
+### Added
+- Added scholarly citation (Sołtysiak & Lebeuf 2011) to README and calendars concepts page.
+
+### Changed
+- Converted bare reference URLs in documentation to markdown links for clickability.
+
+### Fixed
+- Documentation references in rendered site were not clickable (wrapped in proper link syntax).
+
+### Internal
+- Version bump preparing PyPI / tag release.
+
 ## [0.2.0] - 2025-09-04
 ### Added
 - Continuous Integration workflow (`ci.yml`) running tests across Python 3.10–3.13.
@@ -56,3 +69,4 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 
 [0.2.0]: https://github.com/muscariello/pohualli-python/releases/tag/v0.2.0
 [0.1.0]: https://github.com/muscariello/pohualli-python/releases/tag/v0.1.0
+[0.2.1]: https://github.com/muscariello/pohualli-python/releases/tag/v0.2.1

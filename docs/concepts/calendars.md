@@ -56,10 +56,10 @@ color_index = station_to_dir_col(station, 0)  # 1..4
 
 ## References
 
-- Mesoamerican calendars: https://en.wikipedia.org/wiki/Mesoamerican_calendars
-- Tzolk'in: https://en.wikipedia.org/wiki/Tzolk%CA%BCin
-- Haab': https://en.wikipedia.org/wiki/Haab%27
-- Long Count: https://en.wikipedia.org/wiki/Mesoamerican_Long_Count_calendar
-- 819-day count (specific Maya calendar section): https://en.wikipedia.org/wiki/Maya_calendar#819-day_count
-- Year Bearer (specific Maya calendar section): https://en.wikipedia.org/wiki/Maya_calendar#Year_Bearer
- - Sołtysiak, Arkadiusz & Lebeuf, Arnold. (2011). Pohualli 1.01. A computer simulation of Mesoamerican calendar systems. 8(49), 165–168.
+- Mesoamerican calendars: [https://en.wikipedia.org/wiki/Mesoamerican_calendars](https://en.wikipedia.org/wiki/Mesoamerican_calendars)
+- Tzolk'in: [https://en.wikipedia.org/wiki/Tzolk%CA%BCin](https://en.wikipedia.org/wiki/Tzolk%CA%BCin)
+- Haab': [https://en.wikipedia.org/wiki/Haab%27](https://en.wikipedia.org/wiki/Haab%27)
+- Long Count: [https://en.wikipedia.org/wiki/Mesoamerican_Long_Count_calendar](https://en.wikipedia.org/wiki/Mesoamerican_Long_Count_calendar)
+- 819-day count (specific Maya calendar section): [https://en.wikipedia.org/wiki/Maya_calendar#819-day_count](https://en.wikipedia.org/wiki/Maya_calendar#819-day_count)
+- Year Bearer (specific Maya calendar section): [https://en.wikipedia.org/wiki/Maya_calendar#Year_Bearer](https://en.wikipedia.org/wiki/Maya_calendar#Year_Bearer)
+- Sołtysiak, Arkadiusz & Lebeuf, Arnold. (2011). Pohualli 1.01. A computer simulation of Mesoamerican calendar systems. 8(49), 165–168.
