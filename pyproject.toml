@@ -51,6 +51,9 @@ exclude = ["tests*"]
 [tool.coverage.run]
 branch = true
 source = ["pohualli"]
+concurrency = ["thread"]
+# Enable thread coverage so FastAPI TestClient & uvicorn threads (webapp, desktop_app) are tracked.
+parallel = true
 
 [tool.coverage.report]
 show_missing = true

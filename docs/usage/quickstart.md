@@ -24,6 +24,7 @@ pip install -e .[dev,web,docs]
 
 ```bash
 pohualli from-jdn 2451545 --json
+pohualli search-range 584283 584400 --tzolkin-value 4 --limit 2  # range scan example
 ```
 
 ## 3. Python

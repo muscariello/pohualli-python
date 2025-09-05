@@ -53,57 +53,71 @@ Then run CLI (`pohualli ...`) or web app (`uvicorn pohualli.webapp:app --reload`
 ## Structure
 ```
 .
-├── CHANGELOG.md                 # Project changelog / release notes
-├── LICENSE                      # GPL-3.0-only license text
-├── README.md                    # Overview & usage (this file)
-├── docker-compose.yml           # Convenience orchestration for web app
-├── Dockerfile                   # Multi-arch container build definition
-├── mkdocs.yml                   # MkDocs Material documentation config
-├── pyproject.toml               # Packaging & dependency metadata
-├── docs/                        # Documentation markdown sources (MkDocs)
-│   ├── index.md                 # Landing page
-│   ├── dev.md                   # Development & contributing notes
-│   ├── license.md               # License blurb for docs site
-│   ├── concepts/                # Conceptual explanations
-│   │   ├── calendars.md         # Calendar systems overview
-│   │   └── configuration.md     # Correlations & correction parameters
-│   └── usage/                   # How-to guides
-│       ├── quickstart.md        # Quick installation & first run
-│       ├── cli.md               # CLI usage details
-│       ├── desktop.md           # Desktop bundles (Briefcase) guide
-│       └── python-api.md        # Python API examples
+├── CHANGELOG.md                     # Project changelog / release notes
+├── LICENSE                          # GPL-3.0-only license text
+├── README.md                        # Overview & usage (this file)
+├── docker-compose.yml               # Convenience orchestration for web app
+├── Dockerfile                       # Multi-arch container build definition
+├── mkdocs.yml                       # MkDocs Material documentation config
+├── pyproject.toml                   # Packaging & dependency metadata
+├── docs/                            # Documentation markdown sources (MkDocs)
+│   ├── index.md                     # Landing page
+│   ├── dev.md                       # Development & contributing notes
+│   ├── license.md                   # License blurb for docs site
+│   ├── concepts/                    # Conceptual explanations
+│   │   ├── calendars.md             # Calendar systems overview
+│   │   └── configuration.md         # Correlations & correction parameters
+│   └── usage/                       # How-to guides
+│       ├── quickstart.md            # Quick installation & first run
+│       ├── cli.md                   # CLI usage details
+│       ├── desktop.md               # Desktop bundles (Briefcase) guide
+│       └── python-api.md            # Python API examples
 ├── pohualli/
-│   ├── __init__.py              # Public API exports (compute_composite, etc.)
-│   ├── __main__.py              # Module entry point (python -m pohualli / bundle)
-│   ├── autocorr.py              # Derive correction offsets from constraints
-│   ├── aztec.py                 # Aztec (Tonalpohualli) name tables & helpers
-│   ├── calendar_dates.py        # Gregorian/Julian conversions & weekday calc
-│   ├── cli.py                   # Command line interface entry point
-│   ├── composite.py             # High-level composite computation orchestrator
-│   ├── correlations.py          # Correlation (New Era) preset definitions
-│   ├── cycle819.py              # 819‑day cycle station & direction colors
-│   ├── desktop_app.py           # Desktop launcher for packaged app (Briefcase)
-│   ├── maya.py                  # Core Maya calendar math (Tzolk'in / Haab / LC)
-│   ├── moon.py                  # Moon phase / anomaly heuristics
-│   ├── planets.py               # Planetary synodic value helpers
+│   ├── __init__.py                  # Public API exports (compute_composite, etc.)
+│   ├── __main__.py                  # Module entry point (python -m pohualli / bundle)
+│   ├── autocorr.py                  # Derive correction offsets from constraints
+│   ├── aztec.py                     # Aztec (Tonalpohualli) name tables & helpers
+│   ├── calendar_dates.py            # Gregorian/Julian conversions & weekday calc
+│   ├── cli.py                       # Command line interface entry point
+│   ├── composite.py                 # High-level composite computation orchestrator
+│   ├── correlations.py              # Correlation (New Era) preset definitions
+│   ├── cycle819.py                  # 819‑day cycle station & direction colors
+│   ├── desktop_app.py               # Desktop launcher for packaged app (Briefcase)
+│   ├── maya.py                      # Core Maya calendar math (Tzolk'in / Haab / LC)
+│   ├── moon.py                      # Moon phase / anomaly heuristics
+│   ├── planets.py                   # Planetary synodic value helpers
 │   ├── templates/
-│   │   └── index.html           # Web UI Jinja2 template
-│   ├── types.py                 # Dataclasses & global correction state types
-│   ├── webapp.py                # FastAPI application factory / routes
-│   ├── yearbear.py              # Year Bearer packing/unpacking utilities
-│   └── zodiac.py                # Star & earth zodiac angle computations
-└── tests/                       # Pytest suite (≥90% per-file coverage)
-  ├── test_autocorr*.py            # Auto-correction derivation tests
-  ├── test_calendar*.py            # Calendar date conversion edge cases
-  ├── test_cli*.py                 # CLI command & JSON output coverage
-  ├── test_cycle_planets.py        # 819-cycle & planetary helpers
-  ├── test_desktop_app.py          # Desktop launcher behavior
-  ├── test_extra_cycles_yearbear_moon.py  # Mixed composite cycle branches
-  ├── test_maya*.py                # Maya calendar arithmetic & validation
-  ├── test_moon_zodiac.py          # Moon + zodiac computations
-  ├── test_web*.py                 # FastAPI endpoint & template rendering
-  ├── test_yearbear_cli.py         # Year bearer & related CLI paths
-  └── test_zodiac_extra.py         # Additional zodiac heuristic coverage
+│   │   └── index.html               # Web UI Jinja2 template
+│   ├── types.py                     # Dataclasses & global correction state types
+│   ├── webapp.py                    # FastAPI application (async range jobs, endpoints)
+│   ├── yearbear.py                  # Year Bearer packing/unpacking utilities
+│   └── zodiac.py                    # Star & earth zodiac angle computations
+└── tests/                           # Pytest suite (broad branch coverage)
+  ├── test_async_range_job.py          # Async range job creation & polling
+  ├── test_async_cancel_partial.py     # Cancellation partial-results semantics
+  ├── test_autocorr*.py                # Auto-correction derivation & edge cases
+  ├── test_cli_direct.py               # Direct main() invocation basic paths
+  ├── test_cli_early_filters_paths.py  # Early filter continue branches (range)
+  ├── test_cli_more.py                 # JSON output & new-era/year bearer refs
+  ├── test_cli_no_subproc.py           # CLI coverage without subprocess fork
+  ├── test_cli_range_matrix.py         # Combinatorial filter matrix (range)
+  ├── test_cli_search_range*.py        # Range search modes (table/json-lines)
+  ├── test_cli_textual_branches.py     # Textual from-jdn output branches
+  ├── test_composite.py                # Composite object field consistency
+  ├── test_cycle_planets.py            # 819-cycle & planetary helpers
+  ├── test_desktop_app.py              # Desktop launcher behavior
+  ├── test_extra_cycles_yearbear_moon.py # Mixed composite cycle branches
+  ├── test_maya*.py                    # Maya calendar arithmetic & validation
+  ├── test_moon_zodiac.py              # Moon + zodiac computations
+  ├── test_web.py                      # Basic web endpoint checks
+  ├── test_web_extra.py                # Additional /api/convert / derive cases
+  ├── test_web_range_job_extra.py      # Range job edge cases & listing
+  ├── test_webapp_internal.py          # Internal helpers (_early_filters etc.)
+  ├── test_webapp_filters_matrix.py    # Each filter type in async jobs
+  ├── test_webapp_more.py              # Not-found, cancel-after-complete, culture
+  ├── test_webapp_additional.py        # Reversed ranges, invalid specs, limits
+  ├── test_yearbear_cli.py             # Year bearer & CLI integration
+  └── test_zodiac_extra.py             # Additional zodiac heuristic coverage
 ```
 
 ## Python Usage
@@ -145,6 +159,25 @@ pohualli load-config config.json
 
 # Full JSON composite into a file
 pohualli from-jdn 2451545 --json > composite.json
+
+# Range search (scan inclusive JDN interval with filters)
+# Find first 5 dates in a span whose Tzolkin name is Imix and Haab month is Cumhu
+pohualli search-range 584283 584500 --tzolkin-name Imix --haab-month Cumhu --limit 5
+
+# Long Count pattern matching (use * as wildcard for a component)
+pohualli search-range 500000 600000 --long-count '9.*.*.*.*.*' --limit 3
+
+# Output JSON lines (machine processing)
+pohualli search-range 584283 584400 --tzolkin-value 4 --json-lines --limit 2
+
+# Select custom output fields
+pohualli search-range 584283 584400 --fields jdn,tzolkin_name,haab_month_name --limit 3
+
+# Switch to Aztec year-bearer derivation (subtracts 364 days in interval logic)
+pohualli from-jdn 2451545 --culture aztec --year-bearer-ref 0 0
+
+# Range search in Aztec mode
+pohualli search-range 584283 584400 --culture aztec --tzolkin-value 4 --limit 2
 ```
 
 ## Web App
@@ -170,6 +203,9 @@ pytest -q
 
 ## License
 GPL-3.0-only
+
+### Maya vs Aztec Year Bearer Note
+The computation of the Year Bearer differs: in Aztec (tonalpohualli) mode the interval between the target Haab position and the reference is reduced by 364 days before deriving the bearer, shifting the resulting Tzolkin pair relative to Maya convention. Use `--culture aztec` (CLI) or the Culture dropdown in the web UI to toggle. Default is Maya.
 
 ## Reference
 Sołtysiak, A. & Lebeuf, A. (2011). Pohualli 1.01. A computer simulation of Mesoamerican calendar systems. 8(49), 165–168. [ResearchGate](https://www.researchgate.net/publication/270956742_2011_Pohualli_101_A_computer_simulation_of_Mesoamerican_calendar_systems)

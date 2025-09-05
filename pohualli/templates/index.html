@@ -8,6 +8,23 @@
 (function(){
   try { var th = localStorage.getItem('pohualli_theme'); if(th){ document.documentElement.setAttribute('data-theme', th); } } catch(e){}
 })();
+// Preserve scroll position across full page reloads (form submissions)
+(function(){
+  const KEY='pohualli_scroll_y';
+  // When a submit button is clicked, store current scroll position
+  document.addEventListener('click', function(ev){
+    const btn = ev.target && ev.target.closest('button');
+    if(!btn) return;
+    if(btn.type === 'submit'){ sessionStorage.setItem(KEY, String(window.scrollY)); }
+  }, true);
+  // On load, restore and then clear
+  window.addEventListener('DOMContentLoaded', function(){
+    try {
+      const y = sessionStorage.getItem(KEY);
+      if(y){ window.scrollTo(0, parseInt(y,10)||0); sessionStorage.removeItem(KEY); }
+    } catch(_){}
+  });
+})();
 </script>
 <style>
 /* --- Color System (basic palette) --- */
@@ -106,6 +123,21 @@ footer { margin-top:2.5rem; font-size:.8rem; color:var(--color-text-soft); text-
 .card h3 { margin:.1rem 0 .45rem; font-size:.8rem; letter-spacing:.6px; font-weight:700; text-transform:uppercase; color: var(--color-text-soft); }
 .value { font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; font-size:.95rem; word-break:break-word; }
 details { border-radius:var(--radius-lg); background:linear-gradient(145deg,var(--color-panel),var(--color-panel-alt)); border:1px solid var(--color-border); box-shadow:var(--shadow-sm); }
+/* Themed panel wrapper to avoid hard-coded white backgrounds */
+.panel { background:linear-gradient(155deg,var(--color-panel),var(--color-panel-alt)); border:1px solid var(--color-border); border-radius:var(--radius-lg); box-shadow:var(--shadow-sm); }
+.panel h2 { margin-top:0; }
+.panel p { color: var(--color-text-soft); }
+:root[data-theme='light'] .panel { background: var(--color-panel); }
+:root:not([data-theme='light']) .panel { background:linear-gradient(155deg,#1a222b,#202a35 55%, #182027); }
+.panel table { width:100%; border-collapse:collapse; }
+.panel table thead th { background:rgba(255,255,255,0.06); font-weight:600; }
+:root[data-theme='light'] .panel table thead th { background:#f2f6fa; }
+.panel table tbody tr:nth-child(even){ background:rgba(255,255,255,0.04); }
+:root[data-theme='light'] .panel table tbody tr:nth-child(even){ background:#f5f9fc; }
+.panel table tbody tr:nth-child(odd){ background:rgba(255,255,255,0.015); }
+:root[data-theme='light'] .panel table tbody tr:nth-child(odd){ background:#ffffff; }
+.panel table td, .panel table th { padding:.35rem .5rem; border-bottom:1px solid var(--color-border-soft); }
+.panel .note { font-size:.65rem; color: var(--color-text-soft); }
 details[open] { box-shadow:var(--shadow-md); }
 details > summary { padding:.9rem 1.05rem; list-style:none; cursor:pointer; font-weight:600; letter-spacing:.4px; color: var(--color-text-soft); }
 details > summary::-webkit-details-marker { display:none; }
@@ -131,6 +163,15 @@ details form input { background:#141a22; }
   form { grid-template-columns: repeat(auto-fill,minmax(170px,1fr)); }
   .grid { grid-template-columns: repeat(auto-fill,minmax(170px,1fr)); }
 }
+/* --- Enhanced progress bar styles --- */
+.pbar-wrap { position:relative; background:#13202a; border:1px solid #2e3f4c; height:18px; border-radius:10px; overflow:hidden; box-shadow: inset 0 0 4px rgba(0,0,0,.6), 0 0 0 1px rgba(255,255,255,0.03); }
+.pbar { height:100%; background:linear-gradient(90deg,#1f6ad6,#2d83f4,#4a9bff); background-size:200% 100%; position:relative; transition:width .35s ease; display:flex; align-items:center; justify-content:center; font-size:.65rem; font-weight:600; letter-spacing:.5px; color:#fff; text-shadow:0 1px 2px rgba(0,0,0,.6); animation:pbarShift 3s linear infinite; }
+.pbar::after { content:""; position:absolute; inset:0; background:repeating-linear-gradient(45deg,rgba(255,255,255,0.18) 0 8px, rgba(255,255,255,0) 8px 16px); mix-blend-mode:overlay; opacity:.55; }
+@keyframes pbarShift { 0% {background-position:0 0;} 100% {background-position:200% 0;} }
+:root .pbar-done { animation:none !important; }
+.pbar-static { animation:none !important; }
+:root[data-theme='light'] .pbar-wrap { background:#f2f7fa; border-color:#c8d5e0; }
+:root[data-theme='light'] .pbar { text-shadow:none; }
 </style>
 <script>
 // --- Persistence of correction and config fields via localStorage ---
@@ -272,13 +313,304 @@ async function runAutocorr(){
   pre.style.display='block';
   pre.textContent='Calculating...';
   const resp = await fetch('/api/derive-autocorr?' + params.toString());
-  if(resp.ok){
-    const data = await resp.json();
+  let data = null; let rawText = '';
+  try { data = await resp.clone().json(); } catch(_) { try { rawText = await resp.text(); } catch(_){} }
+  if(resp.ok && data){
     pre.textContent = JSON.stringify(data, null, 2);
   } else {
-    pre.textContent = 'Error: ' + resp.status;
+    const errMsg = data && (data.error || data.detail) ? (data.error || data.detail) : (rawText.trim() || 'HTTP '+resp.status);
+    pre.textContent = 'Error: ' + errMsg;
   }
 }
+
+// -------- Asynchronous Range Job UI ---------
+let activeJobId = null;
+let pollTimer = null;
+let elapsedTimer = null; // client-side smoother elapsed updates
+let activeJobStartedEpoch = null; // unix seconds from server
+async function startRangeJob(ev){
+  ev.preventDefault();
+  if(pollTimer){ clearInterval(pollTimer); pollTimer=null; }
+  const form = ev.target;
+  const payload = {};
+  const map = {
+    start: 'r_start', end: 'r_end', step: 'r_step', limit:'r_limit', tzolkin_value:'r_tzval', tzolkin_name:'r_tzname', haab_day:'r_haab_day', haab_month:'r_haab_month', year_bearer_name:'r_year_bearer_name', dir_color:'r_dir_color', weekday:'r_weekday', long_count:'r_long_count', fields:'r_fields'
+  };
+  const box = document.getElementById('rangeJobBox');
+  box.textContent = 'Submitting job...';
+  for(const [api, field] of Object.entries(map)){
+    const el = form.querySelector(`[name="${field}"]`);
+  if(el && el.value.trim() !== '') payload[api] = el.value.trim();
+  }
+  const btn = form.querySelector('button[type="submit"]');
+  btn.disabled = true; btn.textContent='Starting...';
+  try{
+  const resp = await fetch('/api/range-jobs', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)});
+    const data = await resp.json();
+    activeJobId = data.id;
+  activeJobStartedEpoch = data.started || null;
+  const stopBtn = document.getElementById('btnStopJob'); if(stopBtn){ stopBtn.disabled=false; }
+    renderJobStatus(data);
+    pollTimer = setInterval(pollStatus, 750);
+  startElapsedLoop();
+  }catch(e){
+    renderJobError(String(e));
+  } finally {
+    btn.disabled=false; btn.textContent='Search Range';
+  }
+}
+let _lastExampleIdx = {convert:-1, autocorr:-1, sync:-1, async:-1};
+function _pickExample(kind, arr){
+  if(!Array.isArray(arr) || !arr.length) return null;
+  let idx = Math.floor(Math.random()*arr.length);
+  if(arr.length>1 && idx === _lastExampleIdx[kind]){ idx = (idx+1)%arr.length; }
+  _lastExampleIdx[kind] = idx;
+  return arr[idx];
+}
+function fillAsyncExample(){
+  const f = document.getElementById('asyncRangeForm');
+  if(!f) return;
+  const examples = [
+    {start:'2451545', end:'2452000', tz:'Ik', limit:'12', fields:'jdn,gregorian_date,tzolkin_name,long_count'},
+    {start:'584283', end:'584900', tz:'Ahau', limit:'7', fields:'jdn,gregorian_date,haab_month_name,tzolkin_name'},
+    {start:'1872000', end:'1872600', tz:'Ben', limit:'9', fields:'jdn,gregorian_date,year_bearer_name'},
+    {start:'2305447', end:'2306000', tz:'Caban', limit:'6', fields:'jdn,gregorian_date,tzolkin_value,tzolkin_name'}
+  ];
+  const pick = _pickExample('async', examples);
+  if(!pick) return;
+  const set=(n,v)=>{ const el=f.querySelector(`[name="${n}"]`); if(el) el.value=v; };
+  set('r_start', pick.start);
+  set('r_end', pick.end);
+  set('r_limit', pick.limit);
+  set('r_tzname', pick.tz);
+  set('r_fields', pick.fields);
+  flashStatus('Async range example loaded');
+}
+
+// ---- Additional Example Fillers ----
+function fillConvertExample(){
+  const examples = [
+    { jdn: '2451545', label:'J2000.0' },
+    { jdn: '2440588', label:'Unix Epoch' },
+    { jdn: '584283', label:'GMT Base' },
+    { jdn: '1872000', label:'12.0.0.0.0' },
+    { jdn: '2305447', label:'9.9.16.0.0' }
+  ];
+  const pick = _pickExample('convert', examples);
+  if(!pick) return;
+  const jdn = document.getElementById('jdn');
+  if(jdn) jdn.value = pick.jdn;
+  const ybm = document.getElementById('ybm'); if(ybm) ybm.value='';
+  const ybd = document.getElementById('ybd'); if(ybd) ybd.value='';
+  flashStatus(`Example conversion loaded (${pick.label})`);
+}
+function fillCorrectionsExample(){
+  const map = {
+    tz_off: '0',
+    tzn_off: '0',
+    haab_off: '0',
+    g_off: '0',
+    lcd_off: '0',
+    week_off: '0',
+    c819s: '0',
+    c819d: '0'
+  };
+  for(const [k,v] of Object.entries(map)){
+    const el = document.querySelector(`[name="${k}"]`); if(el) el.value = v;
+  }
+  flashStatus('Example corrections loaded (all zero)');
+}
+function fillAutocorrExample(){
+  const jdnInput = document.getElementById('jdn');
+  const set = (id,val)=>{ const el=document.getElementById(id); if(el) el.value=val; };
+  async function loadFromJdn(jdn){
+    try {
+      const resp = await fetch('/api/convert?jdn=' + jdn);
+      if(!resp.ok) throw new Error('bad status');
+      const data = await resp.json();
+      // Build specs directly from composite so they always match this JDN
+      set('ac_tz', `${data.tzolkin_value} ${data.tzolkin_name}`);
+      set('ac_h', `${data.haab_day} ${data.haab_month_name}`);
+      // g value not exposed separately; leave blank so derivation can compute others without stricter constraint
+      set('ac_g', '');
+      if(Array.isArray(data.long_count)){
+        set('ac_lc', data.long_count.join('.'));
+      } else if(typeof data.long_count === 'string') {
+        set('ac_lc', data.long_count);
+      }
+      set('ac_yb', `${data.year_bearer_value} ${data.year_bearer_name}`);
+      set('ac_819s', data.cycle819_station);
+      set('ac_819v', data.cycle819_value);
+      set('ac_dc', data.dir_color_str);
+      flashStatus('Autocorr example derived from JDN');
+    } catch(e){
+      flashStatus('Failed to load composite for JDN');
+    }
+  }
+  if(jdnInput && jdnInput.value){
+    loadFromJdn(jdnInput.value.trim());
+    return;
+  }
+  // If no JDN provided yet, pick a conversion example JDN first then derive from it.
+  const exampleJdns = ['2451545','2440588','584283','1872000','2305447'];
+  const pick = _pickExample('autocorr', exampleJdns);
+  if(pick){
+    if(jdnInput) jdnInput.value = pick;
+    loadFromJdn(pick);
+  }
+}
+function fillSyncRangeExample(){
+  const f = document.getElementById('syncRangeForm');
+  if(!f) return;
+  const examples = [
+    {start:'2451545', end:'2451700', tz:'Imix', limit:'5', fields:'jdn,gregorian_date,tzolkin_name,long_count'},
+    {start:'584283', end:'584500', tz:'Ik', limit:'8', fields:'jdn,gregorian_date,haab_month_name,long_count'},
+    {start:'1872000', end:'1872120', tz:'Ahau', limit:'10', fields:'jdn,gregorian_date,tzolkin_value,tzolkin_name'},
+    {start:'2305447', end:'2305600', tz:'Ben', limit:'6', fields:'jdn,gregorian_date,year_bearer_name,long_count'}
+  ];
+  const pick = _pickExample('sync', examples);
+  if(!pick) return;
+  const set=(n,v)=>{ const el=f.querySelector(`[name="${n}"]`); if(el) el.value=v; };
+  set('r_start', pick.start);
+  set('r_end', pick.end);
+  set('r_tzname', pick.tz);
+  set('r_limit', pick.limit);
+  set('r_fields', pick.fields);
+  flashStatus('Sync range example loaded');
+}
+
+// --- Live Gregorian date preview for JDN field ---
+let _jdnPreviewTimer = null;
+async function _fetchGregorian(jdn){
+  try {
+    const resp = await fetch(`/api/convert?jdn=${jdn}`);
+    if(!resp.ok) return null;
+    const data = await resp.json();
+    return data.gregorian_date;
+  } catch { return null; }
+}
+function attachJdnPreview(){
+  const input = document.getElementById('jdn');
+  if(!input) return;
+  let preview = document.getElementById('jdnGregorianPreview');
+  if(!preview){
+    preview = document.createElement('div');
+    preview.id='jdnGregorianPreview';
+    preview.style.fontSize='.65rem';
+    preview.style.marginTop='.2rem';
+    preview.style.color='var(--color-text-soft)';
+    input.parentElement.appendChild(preview);
+  }
+  const update = ()=>{
+    const v = input.value.trim();
+    if(!v){ preview.textContent=''; return; }
+    if(_jdnPreviewTimer) clearTimeout(_jdnPreviewTimer);
+    _jdnPreviewTimer = setTimeout(async ()=>{
+      const g = await _fetchGregorian(v);
+      preview.textContent = g ? `Gregorian: ${g}` : '';
+    }, 300);
+  };
+  input.addEventListener('input', update);
+  // initial if pre-populated
+  if(input.value) update();
+}
+document.addEventListener('DOMContentLoaded', attachJdnPreview);
+async function pollStatus(){
+  if(!activeJobId){ return; }
+  try {
+    const resp = await fetch(`/api/range-jobs/${activeJobId}`);
+    if(!resp.ok){ throw new Error('Status ' + resp.status); }
+    const data = await resp.json();
+    renderJobStatus(data);
+    if(['completed','error','canceled'].includes(data.status)){
+      clearInterval(pollTimer); pollTimer=null;
+    }
+  } catch(e){
+    console.warn('Poll failed', e);
+  }
+}
+async function stopActiveJob(){
+  if(!activeJobId) return;
+  try {
+    const resp = await fetch(`/api/range-jobs/${activeJobId}/cancel`, {method:'POST'});
+    if(resp.ok){
+      const data = await resp.json();
+      renderJobStatus(data);
+    }
+  } finally {
+    if(pollTimer){ clearInterval(pollTimer); pollTimer=null; }
+    const stopBtn = document.getElementById('btnStopJob');
+    if(stopBtn){ stopBtn.disabled = true; }
+  }
+}
+function renderJobError(msg){
+  const box = document.getElementById('rangeJobBox');
+  box.innerHTML = `<div style="color:var(--color-danger);">${msg}</div>`;
+}
+function renderJobStatus(data){
+  const box = document.getElementById('rangeJobBox');
+  // Cache job start time for smoother elapsed updates
+  if(data.started && !activeJobStartedEpoch){ activeJobStartedEpoch = data.started; }
+  const pct = data.total ? ((data.scanned / data.total)*100).toFixed(1) : '0.0';
+  const fieldList = Array.isArray(data.fields) ? data.fields : [];
+  const rows = (data.matches||[]).map(r=>{
+    return '<tr>' + fieldList.map(f=>{
+      if(f==='jdn' && fieldList.includes('gregorian_date')){
+        return `<td>${r['jdn']} (${r['gregorian_date']||''})</td>`;
+      }
+      return `<td>${r[f]||''}</td>`;
+    }).join('') + '</tr>';
+  }).join('');
+  const elapsedStr = (typeof data.elapsed === 'number') ? data.elapsed.toFixed(2) : '';
+  const startVal = (data.start !== undefined && data.start !== null) ? data.start : (data.range_start !== undefined ? data.range_start : '—');
+  const endVal = (data.end !== undefined && data.end !== null) ? data.end : (data.range_end !== undefined ? data.range_end : '—');
+  const stepVal = (data.step !== undefined && data.step !== null) ? data.step : (data.step_size !== undefined ? data.step_size : '—');
+  box.innerHTML = `
+    <div style="display:flex; align-items:center; gap:.75rem; margin-bottom:.5rem; flex-wrap:wrap;">
+      <strong>Job ${data.id}</strong>
+      <span>Status: ${data.status}</span>
+      <span>Scanned: ${data.scanned}/${data.total}</span>
+      <span>Matches: ${data.count}</span>
+      <span>${pct}%</span>
+  ${data.status==='running'?'<button type="button" onclick="stopActiveJob()">Stop</button>':''}
+    </div>
+    <div class="pbar-wrap" aria-label="Progress" style="margin-bottom:.55rem;">
+      <div class="pbar ${['completed','canceled','error'].includes(data.status)?'pbar-done pbar-static':''}" style="width:${pct}%">${pct}%</div>
+    </div>
+    <div class="job-meta" style="font-size:.6rem; opacity:.75; margin:-.35rem 0 .55rem; display:flex; gap:1rem; flex-wrap:wrap;">
+  <span>Start: <span id="jobMetaStart">${startVal}</span></span>
+  <span>End: <span id="jobMetaEnd">${endVal}</span></span>
+  <span>Step: <span id="jobMetaStep">${stepVal}</span></span>
+      <span>Limit: ${data.limit || '∞'}</span>
+      <span>Elapsed: <span id="jobMetaElapsed">${elapsedStr}</span>s</span>
+      ${data.partial ? '<span style="color:var(--color-warning); font-weight:600;">Partial</span>' : ''}
+    </div>
+    <div style="max-height:260px; overflow:auto; border:1px solid #2f3c49; border-radius:6px;">
+      <table style="border-collapse:collapse; width:100%; font-size:.7rem;">
+  <thead><tr>${fieldList.map(f=>`<th style='text-align:left; padding:.3rem .45rem; border-bottom:1px solid #3a4b5a;'>${f}</th>`).join('')}</tr></thead>
+  <tbody>${rows || '<tr><td style="padding:.4rem;" colspan="'+(fieldList.length||1)+'">(no matches yet)</td></tr>'}</tbody>
+      </table>
+    </div>
+  `;
+}
+function startElapsedLoop(){
+  if(elapsedTimer){ clearInterval(elapsedTimer); elapsedTimer=null; }
+  if(!activeJobStartedEpoch) return;
+  elapsedTimer = setInterval(()=>{
+    const el = document.getElementById('jobMetaElapsed');
+    if(!el){ return; }
+    // Stop updating if job finished
+    const jobDone = !['pending','running'].includes(document.getElementById('rangeJobBox')?.textContent.includes('Status: running') ? 'running' : '');
+    if(jobDone && pollTimer === null){ clearInterval(elapsedTimer); elapsedTimer=null; return; }
+    const now = Date.now()/1000;
+    const delta = now - activeJobStartedEpoch;
+    if(delta >= 0){ el.textContent = delta.toFixed(2); }
+  }, 250);
+}
+document.addEventListener('DOMContentLoaded', ()=>{
+  const asyncForm = document.getElementById('asyncRangeForm');
+  if(asyncForm){ asyncForm.addEventListener('submit', startRangeJob); }
+});
 </script>
 </head>
 <body>
@@ -306,6 +638,13 @@ async function runAutocorr(){
     </select>
   </div>
   <div>
+    <label for="culture">Culture (Year Bearer)</label>
+    <select id="culture" name="culture">
+      <option value="maya" {% if culture == 'maya' %}selected{% endif %}>Maya</option>
+      <option value="aztec" {% if culture == 'aztec' %}selected{% endif %}>Aztec</option>
+    </select>
+  </div>
+  <div>
     <label for="ybm">Year Bearer Month</label>
     <input type="number" id="ybm" name="ybm" min="0" max="18" value="{{ ybm if ybm is not none else '' }}" />
   </div>
@@ -319,10 +658,12 @@ async function runAutocorr(){
   <button type="button" onclick="saveCorrections()">Save Corrections</button>
   <button type="button" onclick="resetCorrections()">Reset Saved</button>
   <button type="button" onclick="resetToDefaults()">Defaults</button>
+  <button type="button" onclick="fillConvertExample()">Example</button>
   <button type="button" id="themeToggle" onclick="toggleTheme()" style="margin-left:auto;">Light Mode</button>
   </div>
 </form>
-<details style="margin-bottom:1.25rem; background:#fff; padding:1rem 1.25rem; border:1px solid #ccc; border-radius:8px;">
+<p style="margin-top:-1.2rem; font-size:.7rem; color:var(--color-text-soft);">Aztec mode subtracts 364 days before deriving the Year Bearer, shifting numbering vs Maya.</p>
+<details style="margin-bottom:1.25rem; padding:1rem 1.25rem; border-radius:8px;">
   <summary style="font-weight:600; cursor:pointer;">Corrections & Offsets</summary>
   <form method="get" action="/" style="margin-top:.8rem; display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:.75rem;">
     <input type="hidden" name="jdn" value="{{ comp.jdn if comp else '' }}" />
@@ -339,9 +680,9 @@ async function runAutocorr(){
     </div>
   </form>
 </details>
-<section style="margin-bottom:1.5rem; background:#fff; padding:1rem 1.25rem; border:1px solid #ccc; border-radius:8px;">
-  <h2 style="margin-top:0">Derive Auto-Corrections</h2>
-  <p style="margin-top:.25rem; font-size:.9rem; color:#444;">Provide any known calendar expressions for this JDN and fetch suggested correction offsets.</p>
+<section class="panel" style="margin-bottom:1.5rem; padding:1rem 1.25rem;">
+  <h2>Derive Auto-Corrections</h2>
+  <p style="margin-top:.25rem; font-size:.9rem;">Provide any known calendar expressions (enter only what you know). Long Count must be full or 5-part (auto‑prepends baktun). Errors now show precise cause.</p>
   <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(170px,1fr)); gap:.6rem;">
     <label style="font-weight:500;">Tzolkin<br><input id="ac_tz" placeholder="e.g. 11 Ik" /></label>
     <label style="font-weight:500;">Haab<br><input id="ac_h" placeholder="e.g. 0 Pop" /></label>
@@ -353,15 +694,101 @@ async function runAutocorr(){
     <label style="font-weight:500;">Dir Color<br><input id="ac_dc" placeholder="Este Rojo" /></label>
   </div>
   <div style="margin-top:.75rem;">
-    <button type="button" onclick="runAutocorr()">Derive Offsets</button>
+  <button type="button" onclick="runAutocorr()">Derive Offsets</button>
+  <button type="button" onclick="fillAutocorrExample()">Example</button>
   </div>
   <pre id="ac_result" style="display:none; margin-top:1rem;"></pre>
+</section>
+<section class="panel" style="margin-bottom:1.5rem; padding:1rem 1.25rem;">
+  <h2>Range Search</h2>
+  <p style="margin-top:.25rem; font-size:.85rem;">Scan an inclusive JDN interval with optional filters. Returns first N matches (limit) in a lightweight table.</p>
+  <form id="syncRangeForm" method="get" action="/" style="display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:.6rem;">
+    <label>Start<br><input type="number" name="r_start" value="{{ request.query_params.get('r_start','') }}" required></label>
+    <label>End<br><input type="number" name="r_end" value="{{ request.query_params.get('r_end','') }}" required></label>
+    <label>Tzolkin Val<br><input type="number" name="r_tzval" value="{{ request.query_params.get('r_tzval','') }}" min="1" max="13"></label>
+    <label>Tzolkin Name<br><input name="r_tzname" placeholder="Imix" value="{{ request.query_params.get('r_tzname','') }}"></label>
+    <label>Haab Day<br><input type="number" name="r_haab_day" value="{{ request.query_params.get('r_haab_day','') }}" min="0" max="19"></label>
+    <label>Haab Month<br><input name="r_haab_month" placeholder="Pop" value="{{ request.query_params.get('r_haab_month','') }}"></label>
+    <label>Year Bearer Name<br><input name="r_year_bearer_name" placeholder="Ix" value="{{ request.query_params.get('r_year_bearer_name','') }}"></label>
+    <label>Dir/Color<br><input name="r_dir_color" placeholder="Este" value="{{ request.query_params.get('r_dir_color','') }}"></label>
+    <label>Weekday (1-7)<br><input type="number" name="r_weekday" value="{{ request.query_params.get('r_weekday','') }}" min="1" max="7"></label>
+    <label>Long Count Pattern<br><input name="r_long_count" placeholder="13.*.*.*.*.*" value="{{ request.query_params.get('r_long_count','') }}"></label>
+    <label>Limit<br><input type="number" name="r_limit" value="{{ request.query_params.get('r_limit','') }}" min="0"></label>
+    <label>Step<br><input type="number" name="r_step" value="{{ request.query_params.get('r_step','1') }}" min="1"></label>
+    <label>Fields (csv)<br><input name="r_fields" placeholder="jdn,tzolkin_name" value="{{ request.query_params.get('r_fields','') }}"></label>
+    <div style="grid-column:1/-1; display:flex; gap:.6rem;">
+      <button type="submit">Search Range</button>
+      <button type="button" onclick="this.form.querySelectorAll('input').forEach(i=>{ if(i.type!=='hidden') i.value=''; });">Clear</button>
+  <button type="button" onclick="fillSyncRangeExample()">Example</button>
+    </div>
+  </form>
+  {% if range %}
+  <p style="font-size:.75rem; margin-top:.6rem; color:var(--color-text-soft);">Matches: {{ range.count }} (scanned {{ range.scanned }})</p>
+    {% if range.rows %}
+      <div style="overflow:auto; max-height:300px; border:1px solid var(--color-border); border-radius:6px;">
+        <table class="alt-table" style="font-size:.78rem;">
+          <thead style="position:sticky; top:0;">
+            <tr>
+              {% for f in range_fields %}<th>{{ f }}</th>{% endfor %}
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in range.rows %}
+              <tr>
+                {% for f in range_fields %}
+                  <td style="font-family:ui-monospace,monospace;">
+                    {% if f == 'jdn' and 'gregorian_date' in range_fields %}
+                      {{ row['jdn'] }} ({{ row['gregorian_date'] }})
+                    {% else %}
+                      {{ row[f] }}
+                    {% endif %}
+                  </td>
+                {% endfor %}
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p style="font-size:.75rem; color:#777;">No matches.</p>
+    {% endif %}
+  {% endif %}
+  <p class="note" style="margin-top:.6rem;">Wildcard '*' allowed in Long Count pattern segments. Step reduces computations (e.g. 5 scans every 5th day). Empty limit scans entire span.</p>
+</section>
+<section class="panel" style="margin-bottom:1.5rem; padding:1rem 1.25rem;">
+  <h2>Async Range Search (Cancelable)</h2>
+  <p style="margin-top:.25rem; font-size:.8rem;">Launch a background job for large spans. Progress updates live; you can cancel anytime.</p>
+  <form id="asyncRangeForm" style="display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:.55rem; margin-bottom:.8rem;">
+    <label>Start<br><input name="r_start" required></label>
+    <label>End<br><input name="r_end" required></label>
+    <label>Step<br><input name="r_step" value="1"></label>
+    <label>Limit<br><input name="r_limit" placeholder="0=none"></label>
+    <label>Tz Val<br><input name="r_tzval"></label>
+    <label>Tz Name<br><input name="r_tzname" placeholder="Imix"></label>
+    <label>Haab Day<br><input name="r_haab_day"></label>
+    <label>Haab Month<br><input name="r_haab_month" placeholder="Pop"></label>
+    <label>Year Bearer<br><input name="r_year_bearer_name" placeholder="Ix"></label>
+    <label>Dir Color<br><input name="r_dir_color" placeholder="Este"></label>
+    <label>Weekday<br><input name="r_weekday" placeholder="1-7"></label>
+    <label>Long Count<br><input name="r_long_count" placeholder="13.*.*.*.*.*"></label>
+    <label>Fields<br><input name="r_fields" placeholder="jdn,tzolkin_name"></label>
+    <div style="grid-column:1/-1; display:flex; gap:.6rem;">
+      <button type="submit">Search Range</button>
+      <button type="button" onclick="this.form.reset()">Reset</button>
+  <button type="button" onclick="fillAsyncExample()">Example</button>
+    </div>
+  </form>
+  <div style="margin-bottom:.6rem; display:flex; gap:.6rem;">
+    <button id="btnStopJob" type="button" class="danger" onclick="stopActiveJob()" disabled>Stop Current Job</button>
+  </div>
+  <div id="rangeJobBox" style="font-size:.75rem;">No job yet.</div>
 </section>
 {% if error %}<div class="error">Error: {{ error }}</div>{% endif %}
 {% if comp %}
 <section>
   <h2>Results</h2>
   <div class="grid">
+    <div class="card"><h3>JDN / Gregorian</h3><div class="value">{{ comp.jdn }} ({{ comp.gregorian_date }})</div></div>
     <div class="card"><h3>Tzolkin</h3><div class="value">{{ comp.tzolkin_value }} {{ comp.tzolkin_name }}</div></div>
     <div class="card"><h3>Haab</h3><div class="value">{{ comp.haab_day }} {{ comp.haab_month_name }}</div></div>
     <div class="card"><h3>Long Count</h3><div class="value">{{ comp.long_count }}</div></div>

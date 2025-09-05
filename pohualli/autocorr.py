@@ -209,13 +209,17 @@ def derive_auto_corrections(
             raise ValueError('Long Count must have 5 or 6 components separated by dots')
         target = tuple(lc_numbers)
         found = False
-        for off in range(-5000, 5001):
-            if _long_count_with_offset(jdn, off) == target:
-                lcd_offset = off
-                found = True
+        # Adaptive widening: first a quick small window, then a large window if needed.
+        for window in (5000, 200000):
+            for off in range(-window, window + 1):
+                if _long_count_with_offset(jdn, off) == target:
+                    lcd_offset = off
+                    found = True
+                    break
+            if found:
                 break
         if not found:
-            raise ValueError('Unable to match long count within search window')
+            raise ValueError(f'Unable to match long count within ±200000 day offset of JDN {jdn}')
 
     # Year bearer reference
     yb_month = None
