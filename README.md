@@ -145,6 +145,25 @@ pohualli load-config config.json
 
 # Full JSON composite into a file
 pohualli from-jdn 2451545 --json > composite.json
+
+# Range search (scan inclusive JDN interval with filters)
+# Find first 5 dates in a span whose Tzolkin name is Imix and Haab month is Cumhu
+pohualli search-range 584283 584500 --tzolkin-name Imix --haab-month Cumhu --limit 5
+
+# Long Count pattern matching (use * as wildcard for a component)
+pohualli search-range 500000 600000 --long-count '9.*.*.*.*.*' --limit 3
+
+# Output JSON lines (machine processing)
+pohualli search-range 584283 584400 --tzolkin-value 4 --json-lines --limit 2
+
+# Select custom output fields
+pohualli search-range 584283 584400 --fields jdn,tzolkin_name,haab_month_name --limit 3
+
+# Switch to Aztec year-bearer derivation (subtracts 364 days in interval logic)
+pohualli from-jdn 2451545 --culture aztec --year-bearer-ref 0 0
+
+# Range search in Aztec mode
+pohualli search-range 584283 584400 --culture aztec --tzolkin-value 4 --limit 2
 ```
 
 ## Web App
@@ -170,6 +189,9 @@ pytest -q
 
 ## License
 GPL-3.0-only
+
+### Maya vs Aztec Year Bearer Note
+The computation of the Year Bearer differs: in Aztec (tonalpohualli) mode the interval between the target Haab position and the reference is reduced by 364 days before deriving the bearer, shifting the resulting Tzolkin pair relative to Maya convention. Use `--culture aztec` (CLI) or the Culture dropdown in the web UI to toggle. Default is Maya.
 
 ## Reference
 Sołtysiak, A. & Lebeuf, A. (2011). Pohualli 1.01. A computer simulation of Mesoamerican calendar systems. 8(49), 165–168. [ResearchGate](https://www.researchgate.net/publication/270956742_2011_Pohualli_101_A_computer_simulation_of_Mesoamerican_calendar_systems)
