@@ -1,6 +1,6 @@
 [project]
 name = "pohualli"
-version = "0.2.5"
+version = "0.3.0"
 requires-python = ">=3.10"
 description = "Python port (in progress) of the Turbo Pascal Pohualli calendrical utility"
 authors = [ { name = "Port Maintainers" } ]
@@ -70,7 +70,7 @@ author = "Port Maintainers"
 [tool.briefcase.app.pohualli]
 formal_name = "Pohualli"
 description = "Mesoamerican calendar utility (Maya and Aztec calendrics)."
-version = "0.2.5"
+version = "0.3.0"
 sources = ["pohualli"]
 main_module = "pohualli.desktop_app"
 requires = [
