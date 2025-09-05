@@ -4,6 +4,40 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project (for now) follows simple semantic versioning (MAJOR.MINOR.PATCH).
 
+## [0.3.0] - 2025-09-05
+### Added
+- Asynchronous range search job system (`/api/range-jobs`): create, poll, list, cancel; includes progress (scanned, total, elapsed) and partial result delivery.
+- CLI `search-range` command with multi-filter support (tzolkin value/name, haab day/month, year bearer name, dir/color substring, weekday, Long Count pattern with `*` wildcards) plus performance diagnostics (`--progress-every`, `--perf-stats`, `--step`, `--limit`).
+- Direction/color & 819‑cycle correction derivation support through `/api/derive-autocorr` and CLI `derive-autocorr` (station, value, dir_color).
+- Extensive documentation for range search (README structure update and `docs/usage/cli.md` expanded section) including examples and performance tips.
+- Additional test suites: async job internals, filter matrix, early filter branch coverage for CLI, widening long-count failure paths, direction/color invalid spec handling, deep template rendering scenarios.
+- Environment throttle (`POHUALLI_RANGE_THROTTLE`) to aid deterministic cancellation timing in tests.
+
+### Changed
+- Homepage template enhanced to surface combined single-date conversion and inline range search results with customizable fields.
+- Refined derive-autocorr logging for value errors (structured context) and unified JSON error responses (400 vs 500 separation).
+- README structure tree updated to reflect new modules & expanded test coverage; CLI and quickstart docs augmented with search-range examples.
+
+### Fixed
+- Cancellation semantics: ensure endpoint sets status to `canceled` promptly for partial results without waiting for loop termination.
+- Robust CLI output when zero matches or mismatched Long Count segment lengths (prints `# no matches` instead of partial headers or errors).
+- Minor template resilience for invalid numeric range inputs (graceful error messaging instead of exception).
+
+### Internal
+- Coverage configuration updated to include thread concurrency; added large set of targeted tests (total count now 120+). Overall coverage still below historic baseline (approx. 65% vs prior 95%) due to newly added asynchronous and CLI scanning logic; follow-up tasks noted below.
+- Substitution of subprocess-based CLI tests with direct `main()` invocation to avoid coverage loss.
+- Added negative and widening-window test cases for long count correction search logic.
+
+### Follow-up / TODO
+- Raise coverage of `webapp.py` async loop & `cli.py` range loop branches (currently most uncovered lines).
+- Consider extracting range filtering logic into pure functions for easier unit-level coverage.
+- Potential performance optimization: batch composite computations when step > 1 or when filter set minimal.
+
+### Migration Notes
+No breaking API changes; new features are additive. Users can begin using `pohualli search-range` immediately after upgrade. Existing scripts relying on previous CLI commands unaffected.
+
+---
+
 ## [0.2.5] - 2025-09-04
 ### Added
 - _TBD_
