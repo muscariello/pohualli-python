@@ -67,3 +67,58 @@ jobs:
       - name: Summary
         run: |
           echo "Published tag $GITHUB_REF to PyPI (package version from pyproject)." >> $GITHUB_STEP_SUMMARY
+
+  desktop-mac:
+    name: Build macOS Desktop Bundle
+    runs-on: macos-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install briefcase & project deps
+        run: |
+          python -m pip install --upgrade pip
+          # dev includes briefcase, web for FastAPI runtime
+            python -m pip install -e '.[dev,web]'
+
+      - name: Build macOS app with Briefcase
+        run: |
+          set -e
+          VERSION="${GITHUB_REF_NAME#v}"
+          echo "Building macOS app for version $VERSION"
+          briefcase create macOS
+          briefcase build macOS
+          # Locate built .app (Briefcase places it under build/macOS/<App>.app)
+          APP_BUILD_PATH="build/macOS/Pohualli.app"
+          if [ ! -d "$APP_BUILD_PATH" ]; then
+            echo "Expected app bundle not found at $APP_BUILD_PATH" >&2
+            echo "Contents of build/macOS:" >&2
+            ls -l build/macOS || true
+            exit 1
+          fi
+          mkdir -p dist
+          cp -R "$APP_BUILD_PATH" dist/Pohualli.app
+          (cd dist && zip -r "Pohualli-${VERSION}-macOS.zip" Pohualli.app)
+          ls -l dist
+
+      - name: Upload macOS bundle artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-app
+          path: dist/Pohualli-*-macOS.zip
+
+      - name: Attach macOS bundle to Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          files: dist/Pohualli-*-macOS.zip
+          append_release_body: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
