@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
 
 jobs:
   build-and-publish:
@@ -72,6 +73,9 @@ jobs:
     name: Build macOS Desktop Bundle
     runs-on: macos-latest
     if: startsWith(github.ref, 'refs/tags/v')
+    needs: build-and-publish
+    permissions:
+      contents: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -119,7 +123,6 @@ jobs:
         with:
           tag_name: ${{ github.ref_name }}
           files: dist/Pohualli-*-macOS.zip
-          append_release_body: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -127,6 +130,9 @@ jobs:
     name: Build Windows Desktop Bundle
     runs-on: windows-latest
     if: startsWith(github.ref, 'refs/tags/v')
+    needs: build-and-publish
+    permissions:
+      contents: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
