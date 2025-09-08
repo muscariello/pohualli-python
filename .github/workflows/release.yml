@@ -122,3 +122,56 @@ jobs:
           append_release_body: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  desktop-windows:
+    name: Build Windows Desktop Bundle
+    runs-on: windows-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install briefcase & project deps
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e '.[dev,web]'
+
+      - name: Build Windows app with Briefcase
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $version = $env:GITHUB_REF_NAME.Substring(1)
+          echo "Building Windows app for version $version"
+          briefcase create windows
+          briefcase build windows
+          briefcase package windows
+          if (-not (Test-Path dist)) { New-Item -ItemType Directory -Path dist | Out-Null }
+          $msi = Get-ChildItem -Path dist -Filter '*.msi' | Select-Object -First 1
+          if (-not $msi) {
+            Write-Error 'No MSI produced in dist directory.'
+          }
+          $desiredName = "Pohualli-$version-windows.msi"
+          if ($msi.Name -ne $desiredName) {
+            Rename-Item -Path $msi.FullName -NewName $desiredName
+          }
+          Get-ChildItem dist
+
+      - name: Upload Windows installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-installer
+          path: dist/Pohualli-*-windows.msi
+
+      - name: Attach Windows installer to Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          files: dist/Pohualli-*-windows.msi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
