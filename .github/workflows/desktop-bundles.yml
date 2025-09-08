@@ -5,6 +5,8 @@ on:
   push:
     branches: [ main ]
     tags: [ 'v*.*.*' ]
+  pull_request:
+    branches: [ main ]
 
 jobs:
   build-desktop:
@@ -43,7 +45,16 @@ jobs:
         if: matrix.os == 'macos-latest'
         run: |
           set -e
-          VERSION="${GITHUB_REF_NAME#v}"
+          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            VERSION="${GITHUB_REF_NAME#v}"
+          else
+            # Use PR number if available, else short SHA
+            if [ -n "${{ github.event.pull_request.number }}" ]; then
+              VERSION="pr-${{ github.event.pull_request.number }}"
+            else
+              VERSION="sha-${GITHUB_SHA::7}"
+            fi
+          fi
           APP_DIR="dist/Pohualli.app"
           if [ -d "$APP_DIR" ]; then
             (cd dist && zip -r "Pohualli-${VERSION}-macOS.zip" Pohualli.app)
@@ -57,7 +68,15 @@ jobs:
         shell: bash
         run: |
           set -e
-          VERSION="${GITHUB_REF_NAME#v}"
+          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            VERSION="${GITHUB_REF_NAME#v}"
+          else
+            if [ -n "${{ github.event.pull_request.number }}" ]; then
+              VERSION="pr-${{ github.event.pull_request.number }}"
+            else
+              VERSION="sha-${GITHUB_SHA::7}"
+            fi
+          fi
             MSI_ORIG=$(ls dist/*.msi 2>/dev/null | head -n1 || true)
           if [ -n "$MSI_ORIG" ]; then
             cp "$MSI_ORIG" "dist/Pohualli-${VERSION}-windows.msi"
