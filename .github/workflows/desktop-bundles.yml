@@ -5,6 +5,8 @@ on:
   push:
     branches: [ main ]
     tags: [ 'v*.*.*' ]
+  pull_request:
+    branches: [ main ]
 
 jobs:
   build-desktop:
@@ -43,21 +45,57 @@ jobs:
         if: matrix.os == 'macos-latest'
         run: |
           set -e
-          VERSION="${GITHUB_REF_NAME#v}"
-          APP_DIR="dist/Pohualli.app"
-          if [ -d "$APP_DIR" ]; then
-            (cd dist && zip -r "Pohualli-${VERSION}-macOS.zip" Pohualli.app)
+          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            VERSION="${GITHUB_REF_NAME#v}"
           else
-            echo "Mac app bundle not found at $APP_DIR" >&2
-            exit 1
+            # Use PR number if available, else short SHA
+            if [ -n "${{ github.event.pull_request.number }}" ]; then
+              VERSION="pr-${{ github.event.pull_request.number }}"
+            else
+              VERSION="sha-${GITHUB_SHA::7}"
+            fi
           fi
+          APP_DIST_DIR="dist/Pohualli.app"
+          APP_BUILD_DIR="build/pohualli/macos/app/Pohualli.app"
+          DMG_ORIG=$(ls dist/*.dmg 2>/dev/null | head -n1 || true)
+          if [ -n "$DMG_ORIG" ]; then
+            DMG_TARGET="dist/Pohualli-${VERSION}-macOS.dmg"
+            if [ "$(basename "$DMG_ORIG")" != "$(basename "$DMG_TARGET")" ]; then
+              cp "$DMG_ORIG" "$DMG_TARGET"
+            fi
+          fi
+          if [ ! -d "$APP_DIST_DIR" ]; then
+            if [ -d "$APP_BUILD_DIR" ]; then
+              echo "Copying app bundle from build path ($APP_BUILD_DIR) to dist/";
+              mkdir -p dist
+              cp -R "$APP_BUILD_DIR" "$APP_DIST_DIR"
+            else
+              if [ -n "$DMG_ORIG" ]; then
+                echo "No .app bundle found but DMG present; skipping zip creation.";
+                exit 0
+              fi
+              echo "Mac app bundle not found at either $APP_DIST_DIR or $APP_BUILD_DIR, and no DMG produced." >&2
+              echo "Listing build/pohualli/macos/app for diagnostics (if exists):" >&2
+              find build/pohualli/macos -maxdepth 4 -type d || true
+              exit 1
+            fi
+          fi
+          (cd dist && zip -r "Pohualli-${VERSION}-macOS.zip" Pohualli.app)
 
       - name: Prepare release asset (Windows)
         if: matrix.os == 'windows-latest'
         shell: bash
         run: |
           set -e
-          VERSION="${GITHUB_REF_NAME#v}"
+          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            VERSION="${GITHUB_REF_NAME#v}"
+          else
+            if [ -n "${{ github.event.pull_request.number }}" ]; then
+              VERSION="pr-${{ github.event.pull_request.number }}"
+            else
+              VERSION="sha-${GITHUB_SHA::7}"
+            fi
+          fi
             MSI_ORIG=$(ls dist/*.msi 2>/dev/null | head -n1 || true)
           if [ -n "$MSI_ORIG" ]; then
             cp "$MSI_ORIG" "dist/Pohualli-${VERSION}-windows.msi"
@@ -77,6 +115,7 @@ jobs:
           name: desktop-${{ matrix.os }}
           path: |
             dist/Pohualli-*-macOS.zip
+            dist/Pohualli-*-macOS.dmg
             dist/Pohualli-*-windows.msi
             dist/Pohualli.app/**
           if-no-files-found: warn

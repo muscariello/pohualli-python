@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project (for now) follows simple semantic versioning (MAJOR.MINOR.PATCH).
 
+## [0.3.1] - 2025-09-08
+### Added
+- Windows desktop bundle build in release workflow (MSI attached to tagged releases).
+- macOS desktop bundle build producing zipped .app asset (previously missing).
+
+### Fixed
+- CI coverage job for Python 3.12 failing with "No data to report" by combining parallel coverage data files.
+
+### Internal
+- Release workflow enhancements now produce multi-platform (macOS ZIP, Windows MSI) assets.
+- Improved reliability of coverage reporting path for Codecov upload.
+
 ## [0.3.0] - 2025-09-05
 ### Added
 - Asynchronous range search job system (`/api/range-jobs`): create, poll, list, cancel; includes progress (scanned, total, elapsed) and partial result delivery.
@@ -150,3 +162,5 @@ No breaking API changes; new features are additive. Users can begin using `pohua
 [0.2.2]: https://github.com/muscariello/pohualli-python/releases/tag/v0.2.2
 [0.2.3]: https://github.com/muscariello/pohualli-python/releases/tag/v0.2.3
 [0.2.4]: https://github.com/muscariello/pohualli-python/releases/tag/v0.2.4
+[0.3.0]: https://github.com/muscariello/pohualli-python/releases/tag/v0.3.0
+[0.3.1]: https://github.com/muscariello/pohualli-python/releases/tag/v0.3.1
