@@ -55,13 +55,21 @@ jobs:
               VERSION="sha-${GITHUB_SHA::7}"
             fi
           fi
-          APP_DIR="dist/Pohualli.app"
-          if [ -d "$APP_DIR" ]; then
-            (cd dist && zip -r "Pohualli-${VERSION}-macOS.zip" Pohualli.app)
-          else
-            echo "Mac app bundle not found at $APP_DIR" >&2
-            exit 1
+          APP_DIST_DIR="dist/Pohualli.app"
+          APP_BUILD_DIR="build/pohualli/macos/app/Pohualli.app"
+          if [ ! -d "$APP_DIST_DIR" ]; then
+            if [ -d "$APP_BUILD_DIR" ]; then
+              echo "Copying app bundle from build path ($APP_BUILD_DIR) to dist/";
+              mkdir -p dist
+              cp -R "$APP_BUILD_DIR" "$APP_DIST_DIR"
+            else
+              echo "Mac app bundle not found at either $APP_DIST_DIR or $APP_BUILD_DIR" >&2
+              echo "Listing build/pohualli/macos/app for diagnostics (if exists):" >&2
+              find build/pohualli/macos -maxdepth 4 -type d || true
+              exit 1
+            fi
           fi
+          (cd dist && zip -r "Pohualli-${VERSION}-macOS.zip" Pohualli.app)
 
       - name: Prepare release asset (Windows)
         if: matrix.os == 'windows-latest'
