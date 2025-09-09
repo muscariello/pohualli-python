@@ -57,13 +57,24 @@ jobs:
           fi
           APP_DIST_DIR="dist/Pohualli.app"
           APP_BUILD_DIR="build/pohualli/macos/app/Pohualli.app"
+          DMG_ORIG=$(ls dist/*.dmg 2>/dev/null | head -n1 || true)
+          if [ -n "$DMG_ORIG" ]; then
+            DMG_TARGET="dist/Pohualli-${VERSION}-macOS.dmg"
+            if [ "$(basename "$DMG_ORIG")" != "$(basename "$DMG_TARGET")" ]; then
+              cp "$DMG_ORIG" "$DMG_TARGET"
+            fi
+          fi
           if [ ! -d "$APP_DIST_DIR" ]; then
             if [ -d "$APP_BUILD_DIR" ]; then
               echo "Copying app bundle from build path ($APP_BUILD_DIR) to dist/";
               mkdir -p dist
               cp -R "$APP_BUILD_DIR" "$APP_DIST_DIR"
             else
-              echo "Mac app bundle not found at either $APP_DIST_DIR or $APP_BUILD_DIR" >&2
+              if [ -n "$DMG_ORIG" ]; then
+                echo "No .app bundle found but DMG present; skipping zip creation.";
+                exit 0
+              fi
+              echo "Mac app bundle not found at either $APP_DIST_DIR or $APP_BUILD_DIR, and no DMG produced." >&2
               echo "Listing build/pohualli/macos/app for diagnostics (if exists):" >&2
               find build/pohualli/macos -maxdepth 4 -type d || true
               exit 1
@@ -104,6 +115,7 @@ jobs:
           name: desktop-${{ matrix.os }}
           path: |
             dist/Pohualli-*-macOS.zip
+            dist/Pohualli-*-macOS.dmg
             dist/Pohualli-*-windows.msi
             dist/Pohualli.app/**
           if-no-files-found: warn
