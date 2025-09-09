@@ -1,6 +1,6 @@
 # Pohualli (Python Port)
 
-[![CI](https://github.com/muscariello/pohualli-python/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/muscariello/pohualli-python/actions/workflows/ci.yml) [![Coverage](https://codecov.io/gh/muscariello/pohualli-python/branch/main/graph/badge.svg)](https://codecov.io/gh/muscariello/pohualli-python) [![Docs](https://img.shields.io/badge/docs-GitHub%20Pages-blue)](https://muscariello.github.io/pohualli-python/) [![PyPI](https://img.shields.io/pypi/v/pohualli.svg)](https://pypi.org/project/pohualli/) [![Changelog](https://img.shields.io/badge/changelog-latest-orange)](CHANGELOG.md)
+[![CI](https://github.com/muscariello/pohualli-python/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/muscariello/pohualli-python/actions/workflows/ci.yml) [![Coverage](https://codecov.io/gh/muscariello/pohualli-python/branch/main/graph/badge.svg)](https://codecov.io/gh/muscariello/pohualli-python) [![Docs](https://img.shields.io/badge/docs-GitHub%20Pages-blue)](https://muscariello.github.io/pohualli-python/) [![PyPI](https://img.shields.io/pypi/v/pohualli.svg)](https://pypi.org/project/pohualli/) [![Changelog](https://img.shields.io/badge/changelog-latest-orange)](CHANGELOG.md) [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/muscariello/pohualli-python/blob/main/notebooks/pohualli_colab.ipynb)
 
 Python reimplementation of the original Turbo Pascal Pohualli calendrical utility.
 
@@ -107,6 +107,18 @@ Then run CLI (`pohualli ...`) or web app (`uvicorn pohualli.webapp:app --reload`
 ```
 
 ## Python Usage
+
+### Colab Notebook
+Run Pohualli instantly in Google Colab (no local setup) with the interactive FastAPI UI and helper functions:
+
+➡️ **Open in Colab:** https://colab.research.google.com/github/muscariello/pohualli-python/blob/main/notebooks/pohualli_colab.ipynb
+
+The notebook will:
+- Install required dependencies when launched on Colab.
+- Start the FastAPI app in a background thread.
+- Provide helper functions (`convert`, `derive`) for programmatic use.
+- Offer instructions to expose the UI via `pyngrok` (since Colab can't iframe localhost directly).
+
 ```python
 from pohualli import compute_composite
 result = compute_composite(2451545)
