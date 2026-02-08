@@ -37,5 +37,6 @@ print(res.tzolkin_value, res.tzolkin_name, res.long_count)
 ## Next Steps
 
 - Read the Quick Start for end-to-end examples.
+- Read Desktop Apps for Flutter packaging and release artifacts.
 - Explore Concepts for calendar background.
 - See Python API for data structures.
