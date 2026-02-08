@@ -28,7 +28,7 @@ jobs:
 
       - name: Install dependencies with uv (editable for accurate coverage paths)
         run: |
-          uv pip install --system -e '.[dev,web]' build
+          uv pip install --system -e '.[dev]' build
 
       - name: Run tests (coverage on 3.12 only)
         run: |
