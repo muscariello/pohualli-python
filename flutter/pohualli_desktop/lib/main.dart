@@ -71,7 +71,19 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   final TextEditingController _convertJdnController = TextEditingController(text: '2451545');
   final TextEditingController _convertNewEraController = TextEditingController();
+  final TextEditingController _convertYearBearerMonthController = TextEditingController();
+  final TextEditingController _convertYearBearerDayController = TextEditingController();
+  final TextEditingController _convertTzOffController = TextEditingController();
+  final TextEditingController _convertTzNameOffController = TextEditingController();
+  final TextEditingController _convertHaabOffController = TextEditingController();
+  final TextEditingController _convertGOffController = TextEditingController();
+  final TextEditingController _convertLcdOffController = TextEditingController();
+  final TextEditingController _convertWeekOffController = TextEditingController();
+  final TextEditingController _convertC819StationOffController = TextEditingController();
+  final TextEditingController _convertC819DirOffController = TextEditingController();
   String _convertCulture = 'maya';
+  String? _convertPreset;
+  List<String> _correlationPresets = [];
 
   final TextEditingController _deriveJdnController = TextEditingController(text: '2451545');
   final TextEditingController _deriveTzolkinController = TextEditingController();
@@ -82,8 +94,16 @@ class _HomePageState extends State<HomePage> {
   final TextEditingController _rangeStartController = TextEditingController(text: '2451545');
   final TextEditingController _rangeEndController = TextEditingController(text: '2451600');
   final TextEditingController _rangeLimitController = TextEditingController(text: '10');
+  final TextEditingController _rangeStepController = TextEditingController(text: '1');
   final TextEditingController _rangeTzolkinValueController = TextEditingController();
   final TextEditingController _rangeTzolkinNameController = TextEditingController();
+  final TextEditingController _rangeHaabDayController = TextEditingController();
+  final TextEditingController _rangeHaabMonthController = TextEditingController();
+  final TextEditingController _rangeYearBearerNameController = TextEditingController();
+  final TextEditingController _rangeDirColorController = TextEditingController();
+  final TextEditingController _rangeWeekdayController = TextEditingController();
+  final TextEditingController _rangeLongCountController = TextEditingController();
+  final TextEditingController _rangeFieldsController = TextEditingController();
 
   RpcBridge? _rpc;
   String _status = 'Disconnected';
@@ -106,6 +126,16 @@ class _HomePageState extends State<HomePage> {
   void dispose() {
     _convertJdnController.dispose();
     _convertNewEraController.dispose();
+    _convertYearBearerMonthController.dispose();
+    _convertYearBearerDayController.dispose();
+    _convertTzOffController.dispose();
+    _convertTzNameOffController.dispose();
+    _convertHaabOffController.dispose();
+    _convertGOffController.dispose();
+    _convertLcdOffController.dispose();
+    _convertWeekOffController.dispose();
+    _convertC819StationOffController.dispose();
+    _convertC819DirOffController.dispose();
     _deriveJdnController.dispose();
     _deriveTzolkinController.dispose();
     _deriveHaabController.dispose();
@@ -114,8 +144,16 @@ class _HomePageState extends State<HomePage> {
     _rangeStartController.dispose();
     _rangeEndController.dispose();
     _rangeLimitController.dispose();
+    _rangeStepController.dispose();
     _rangeTzolkinValueController.dispose();
     _rangeTzolkinNameController.dispose();
+    _rangeHaabDayController.dispose();
+    _rangeHaabMonthController.dispose();
+    _rangeYearBearerNameController.dispose();
+    _rangeDirColorController.dispose();
+    _rangeWeekdayController.dispose();
+    _rangeLongCountController.dispose();
+    _rangeFieldsController.dispose();
     _rpc?.close();
     super.dispose();
   }
@@ -132,6 +170,7 @@ class _HomePageState extends State<HomePage> {
         _rpc = bridge;
         _status = 'Connected (${health['status']})';
       });
+      await _loadCorrelationsForDropdown();
     } catch (e) {
       setState(() {
         _status = 'Failed to start bridge: $e';
@@ -155,14 +194,61 @@ class _HomePageState extends State<HomePage> {
     if (_convertNewEraController.text.trim().isNotEmpty && newEra == null) {
       return;
     }
+    final ybMonth = _optionalInt(_convertYearBearerMonthController.text, field: 'Year bearer month');
+    if (_convertYearBearerMonthController.text.trim().isNotEmpty && ybMonth == null) {
+      return;
+    }
+    final ybDay = _optionalInt(_convertYearBearerDayController.text, field: 'Year bearer day');
+    if (_convertYearBearerDayController.text.trim().isNotEmpty && ybDay == null) {
+      return;
+    }
+    if ((ybMonth == null) != (ybDay == null)) {
+      setState(() {
+        _status = 'Year bearer month and day must both be provided';
+      });
+      return;
+    }
+
+    final corrections = <String, int>{};
+    final corrEntries = <String, (TextEditingController, String)>{
+      'tzolkin': (_convertTzOffController, 'Tzolkin Offset'),
+      'tzolkin_name': (_convertTzNameOffController, 'Tzolkin Name Offset'),
+      'haab': (_convertHaabOffController, 'Haab Offset'),
+      'g': (_convertGOffController, 'G Offset'),
+      'lcd': (_convertLcdOffController, 'LCD Offset'),
+      'week': (_convertWeekOffController, 'Week Offset'),
+      'c819_station': (_convertC819StationOffController, '819 Station Offset'),
+      'c819_dir': (_convertC819DirOffController, '819 Dir/Color Offset'),
+    };
+    for (final entry in corrEntries.entries) {
+      final raw = entry.value.$1.text.trim();
+      if (raw.isEmpty) {
+        continue;
+      }
+      final parsed = _optionalInt(raw, field: entry.value.$2);
+      if (parsed == null) {
+        return;
+      }
+      corrections[entry.key] = parsed;
+    }
     setState(() {
       _busy = true;
       _status = 'Converting...';
     });
     try {
       final params = <String, dynamic>{'jdn': jdn, 'culture': _convertCulture};
+      if (_convertPreset != null && _convertPreset!.isNotEmpty) {
+        params['preset'] = _convertPreset;
+      }
       if (newEra != null) {
         params['new_era'] = newEra;
+      }
+      if (ybMonth != null && ybDay != null) {
+        params['year_bearer_month'] = ybMonth;
+        params['year_bearer_day'] = ybDay;
+      }
+      if (corrections.isNotEmpty) {
+        params['corrections'] = corrections;
       }
       final response = await _rpc!.call('convert', params);
       _setResult('convert', response);
@@ -235,8 +321,20 @@ class _HomePageState extends State<HomePage> {
     if (_rangeLimitController.text.trim().isNotEmpty && limit == null) {
       return;
     }
+    final step = _optionalInt(_rangeStepController.text, field: 'Range step');
+    if (_rangeStepController.text.trim().isNotEmpty && step == null) {
+      return;
+    }
     final tzValue = _optionalInt(_rangeTzolkinValueController.text, field: 'Tzolkin value');
     if (_rangeTzolkinValueController.text.trim().isNotEmpty && tzValue == null) {
+      return;
+    }
+    final haabDay = _optionalInt(_rangeHaabDayController.text, field: 'Haab day');
+    if (_rangeHaabDayController.text.trim().isNotEmpty && haabDay == null) {
+      return;
+    }
+    final weekday = _optionalInt(_rangeWeekdayController.text, field: 'Weekday');
+    if (_rangeWeekdayController.text.trim().isNotEmpty && weekday == null) {
       return;
     }
 
@@ -244,10 +342,24 @@ class _HomePageState extends State<HomePage> {
     if (limit != null) {
       params['limit'] = limit;
     }
+    if (step != null) {
+      params['step'] = step;
+    }
     if (tzValue != null) {
       params['tzolkin_value'] = tzValue;
     }
+    if (haabDay != null) {
+      params['haab_day'] = haabDay;
+    }
+    if (weekday != null) {
+      params['weekday'] = weekday;
+    }
     _putIfNotEmpty(params, 'tzolkin_name', _rangeTzolkinNameController.text);
+    _putIfNotEmpty(params, 'haab_month', _rangeHaabMonthController.text);
+    _putIfNotEmpty(params, 'year_bearer_name', _rangeYearBearerNameController.text);
+    _putIfNotEmpty(params, 'dir_color', _rangeDirColorController.text);
+    _putIfNotEmpty(params, 'long_count', _rangeLongCountController.text);
+    _putIfNotEmpty(params, 'fields', _rangeFieldsController.text);
 
     setState(() {
       _busy = true;
@@ -280,6 +392,7 @@ class _HomePageState extends State<HomePage> {
     });
     try {
       final response = await _rpc!.call('list_correlations', {});
+      _extractCorrelationPresets(response);
       _setResult('list_correlations', response);
       setState(() {
         _status = 'Correlation presets loaded';
@@ -293,6 +406,39 @@ class _HomePageState extends State<HomePage> {
         _busy = false;
       });
     }
+  }
+
+  Future<void> _loadCorrelationsForDropdown() async {
+    if (_rpc == null) {
+      return;
+    }
+    try {
+      final response = await _rpc!.call('list_correlations', {});
+      _extractCorrelationPresets(response);
+    } catch (_) {
+      // Non-fatal; manual list action can still be used.
+    }
+  }
+
+  void _extractCorrelationPresets(Map<String, dynamic> response) {
+    final presets = (response['presets'] as List?)
+            ?.whereType<Map>()
+            .map((p) => '${p['name'] ?? ''}')
+            .where((name) => name.isNotEmpty)
+            .toList() ??
+        <String>[];
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _correlationPresets = presets;
+      if (_convertPreset == null && presets.isNotEmpty) {
+        _convertPreset = presets.first;
+      }
+      if (_convertPreset != null && !_correlationPresets.contains(_convertPreset)) {
+        _convertPreset = _correlationPresets.isEmpty ? null : _correlationPresets.first;
+      }
+    });
   }
 
   void _setResult(String method, Map<String, dynamic> result) {
@@ -430,40 +576,89 @@ class _HomePageState extends State<HomePage> {
               const SizedBox(height: 12),
               _buildSection(
                 title: 'Convert',
-                child: Wrap(
-                  spacing: 10,
-                  runSpacing: 8,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _numericField(_convertJdnController, 'JDN', width: 140),
-                    SizedBox(
-                      width: 130,
-                      child: DropdownButtonFormField<String>(
-                        initialValue: _convertCulture,
-                        isExpanded: true,
-                        decoration: const InputDecoration(
-                          labelText: 'Culture',
-                          border: OutlineInputBorder(),
+                    Wrap(
+                      spacing: 10,
+                      runSpacing: 8,
+                      children: [
+                        _numericField(_convertJdnController, 'JDN', width: 140),
+                        SizedBox(
+                          width: 180,
+                          child: DropdownButtonFormField<String>(
+                            initialValue: _convertPreset,
+                            isExpanded: true,
+                            decoration: const InputDecoration(
+                              labelText: 'Correlation Preset',
+                              border: OutlineInputBorder(),
+                            ),
+                            items: _correlationPresets
+                                .map((preset) => DropdownMenuItem(value: preset, child: Text(preset)))
+                                .toList(),
+                            onChanged: _busy
+                                ? null
+                                : (value) {
+                                    setState(() {
+                                      _convertPreset = value;
+                                    });
+                                  },
+                          ),
                         ),
-                        items: const [
-                          DropdownMenuItem(value: 'maya', child: Text('Maya')),
-                          DropdownMenuItem(value: 'aztec', child: Text('Aztec')),
-                        ],
-                        onChanged: _busy
-                            ? null
-                            : (value) {
-                                if (value == null) {
-                                  return;
-                                }
-                                setState(() {
-                                  _convertCulture = value;
-                                });
-                              },
-                      ),
+                        SizedBox(
+                          width: 130,
+                          child: DropdownButtonFormField<String>(
+                            initialValue: _convertCulture,
+                            isExpanded: true,
+                            decoration: const InputDecoration(
+                              labelText: 'Culture',
+                              border: OutlineInputBorder(),
+                            ),
+                            items: const [
+                              DropdownMenuItem(value: 'maya', child: Text('Maya')),
+                              DropdownMenuItem(value: 'aztec', child: Text('Aztec')),
+                            ],
+                            onChanged: _busy
+                                ? null
+                                : (value) {
+                                    if (value == null) {
+                                      return;
+                                    }
+                                    setState(() {
+                                      _convertCulture = value;
+                                    });
+                                  },
+                          ),
+                        ),
+                        _numericField(_convertNewEraController, 'New Era (optional)', width: 170),
+                        _numericField(_convertYearBearerMonthController, 'YB Month (opt)', width: 130),
+                        _numericField(_convertYearBearerDayController, 'YB Day (opt)', width: 120),
+                        FilledButton.tonal(
+                          onPressed: _busy ? null : _convert,
+                          child: const Text('Run Convert'),
+                        ),
+                      ],
                     ),
-                    _numericField(_convertNewEraController, 'New Era (optional)', width: 180),
-                    FilledButton.tonal(
-                      onPressed: _busy ? null : _convert,
-                      child: const Text('Run Convert'),
+                    const SizedBox(height: 8),
+                    ExpansionTile(
+                      title: const Text('Advanced Corrections'),
+                      children: [
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            _numericField(_convertTzOffController, 'Tz Off', width: 110),
+                            _numericField(_convertTzNameOffController, 'Tz Name Off', width: 120),
+                            _numericField(_convertHaabOffController, 'Haab Off', width: 110),
+                            _numericField(_convertGOffController, 'G Off', width: 100),
+                            _numericField(_convertLcdOffController, 'LCD Off', width: 110),
+                            _numericField(_convertWeekOffController, 'Week Off', width: 110),
+                            _numericField(_convertC819StationOffController, '819 St Off', width: 110),
+                            _numericField(_convertC819DirOffController, '819 Dir Off', width: 120),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                      ],
                     ),
                   ],
                 ),
@@ -496,9 +691,17 @@ class _HomePageState extends State<HomePage> {
                   children: [
                     _numericField(_rangeStartController, 'Start', width: 130),
                     _numericField(_rangeEndController, 'End', width: 130),
+                    _numericField(_rangeStepController, 'Step', width: 100),
                     _numericField(_rangeLimitController, 'Limit', width: 110),
                     _numericField(_rangeTzolkinValueController, 'Tzolkin Value', width: 150),
                     _textField(_rangeTzolkinNameController, 'Tzolkin Name', width: 160),
+                    _numericField(_rangeHaabDayController, 'Haab Day', width: 120),
+                    _textField(_rangeHaabMonthController, 'Haab Month', width: 140),
+                    _textField(_rangeYearBearerNameController, 'Year Bearer', width: 140),
+                    _textField(_rangeDirColorController, 'Dir/Color', width: 140),
+                    _numericField(_rangeWeekdayController, 'Weekday', width: 110),
+                    _textField(_rangeLongCountController, 'Long Count', width: 200),
+                    _textField(_rangeFieldsController, 'Fields (csv)', width: 220),
                     FilledButton.tonal(
                       onPressed: _busy ? null : _searchRange,
                       child: const Text('Run Search'),
