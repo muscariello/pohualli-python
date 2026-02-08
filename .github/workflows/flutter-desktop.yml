@@ -197,6 +197,14 @@ jobs:
 
           echo "notarized=true" >> "$GITHUB_OUTPUT"
 
+      - name: Ad-hoc sign macOS app (fallback)
+        if: matrix.os == 'macos-latest' && steps.notarization_config.outputs.enabled != 'true'
+        working-directory: flutter/pohualli_desktop
+        run: |
+          set -euo pipefail
+          /usr/bin/codesign --force --deep --sign - dist/PohualliDesktop.app
+          /usr/bin/codesign --verify --deep --strict --verbose=2 dist/PohualliDesktop.app
+
       - name: Package macOS artifact
         if: matrix.os == 'macos-latest'
         working-directory: flutter/pohualli_desktop
