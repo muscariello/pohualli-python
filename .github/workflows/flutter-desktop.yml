@@ -117,6 +117,19 @@ jobs:
         working-directory: flutter/pohualli_desktop
         run: flutter test --coverage
 
+      - name: Upload Flutter coverage to Codecov
+        if: matrix.os == 'macos-latest' && secrets.CODECOV_TOKEN != ''
+        uses: codecov/codecov-action@v4
+        with:
+          files: flutter/pohualli_desktop/coverage/lcov.info
+          flags: flutter
+          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: Codecov upload skipped (missing token)
+        if: matrix.os == 'macos-latest' && secrets.CODECOV_TOKEN == ''
+        run: echo "CODECOV_TOKEN is not configured; skipping Flutter coverage upload."
+
       - name: Upload Flutter coverage artifact
         uses: actions/upload-artifact@v4
         with:

@@ -44,13 +44,17 @@ jobs:
           fi
 
       - name: Upload coverage to Codecov
-        if: matrix.python-version == '3.12'
+        if: matrix.python-version == '3.12' && secrets.CODECOV_TOKEN != ''
         uses: codecov/codecov-action@v4
         with:
           files: coverage.xml
           flags: unittests
           fail_ci_if_error: false
           token: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: Codecov upload skipped (missing token)
+        if: matrix.python-version == '3.12' && secrets.CODECOV_TOKEN == ''
+        run: echo "CODECOV_TOKEN is not configured; skipping Python coverage upload."
 
       - name: Build package
         run: |
