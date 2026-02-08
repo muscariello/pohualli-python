@@ -8,24 +8,53 @@ void main() {
   runApp(const PohualliDesktopApp());
 }
 
-class PohualliDesktopApp extends StatelessWidget {
+class PohualliDesktopApp extends StatefulWidget {
   const PohualliDesktopApp({super.key});
+
+  @override
+  State<PohualliDesktopApp> createState() => _PohualliDesktopAppState();
+}
+
+class _PohualliDesktopAppState extends State<PohualliDesktopApp> {
+  ThemeMode _themeMode = ThemeMode.system;
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Pohualli Desktop',
+      themeMode: _themeMode,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFFB35C00)),
         useMaterial3: true,
       ),
-      home: const HomePage(),
+      darkTheme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFFB35C00),
+          brightness: Brightness.dark,
+        ),
+        useMaterial3: true,
+      ),
+      home: HomePage(
+        themeMode: _themeMode,
+        onThemeModeChanged: (mode) {
+          setState(() {
+            _themeMode = mode;
+          });
+        },
+      ),
     );
   }
 }
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+  const HomePage({
+    super.key,
+    required this.themeMode,
+    required this.onThemeModeChanged,
+  });
+
+  final ThemeMode themeMode;
+  final ValueChanged<ThemeMode> onThemeModeChanged;
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -50,8 +79,11 @@ class _HomePageState extends State<HomePage> {
 
   RpcBridge? _rpc;
   String _status = 'Disconnected';
-  String _result = '';
   bool _busy = false;
+  bool _showJson = false;
+  String _jsonResult = '';
+  String _lastMethod = '';
+  Map<String, dynamic>? _lastResult;
 
   @override
   void dispose() {
@@ -119,10 +151,9 @@ class _HomePageState extends State<HomePage> {
         params['new_era'] = newEra;
       }
       final response = await _rpc!.call('convert', params);
-      final composite = response['composite'] as Map<String, dynamic>;
+      _setResult('convert', response);
       setState(() {
         _status = 'Converted';
-        _result = const JsonEncoder.withIndent('  ').convert(composite);
       });
     } catch (e) {
       setState(() {
@@ -150,6 +181,7 @@ class _HomePageState extends State<HomePage> {
     if (_deriveGController.text.trim().isNotEmpty && g == null) {
       return;
     }
+
     final params = <String, dynamic>{'jdn': jdn};
     _putIfNotEmpty(params, 'tzolkin', _deriveTzolkinController.text);
     _putIfNotEmpty(params, 'haab', _deriveHaabController.text);
@@ -164,9 +196,9 @@ class _HomePageState extends State<HomePage> {
     });
     try {
       final response = await _rpc!.call('derive_autocorr', params);
+      _setResult('derive_autocorr', response);
       setState(() {
         _status = 'Auto-corrections derived';
-        _result = const JsonEncoder.withIndent('  ').convert(response['autocorr']);
       });
     } catch (e) {
       setState(() {
@@ -199,6 +231,7 @@ class _HomePageState extends State<HomePage> {
     if (_rangeTzolkinValueController.text.trim().isNotEmpty && tzValue == null) {
       return;
     }
+
     final params = <String, dynamic>{'start': start, 'end': end};
     if (limit != null) {
       params['limit'] = limit;
@@ -214,9 +247,9 @@ class _HomePageState extends State<HomePage> {
     });
     try {
       final response = await _rpc!.call('search_range', params);
+      _setResult('search_range', response);
       setState(() {
         _status = 'Range search complete';
-        _result = const JsonEncoder.withIndent('  ').convert(response);
       });
     } catch (e) {
       setState(() {
@@ -242,9 +275,9 @@ class _HomePageState extends State<HomePage> {
     });
     try {
       final response = await _rpc!.call('list_correlations', {});
+      _setResult('list_correlations', response);
       setState(() {
         _status = 'Correlation presets loaded';
-        _result = const JsonEncoder.withIndent('  ').convert(response);
       });
     } catch (e) {
       setState(() {
@@ -255,6 +288,54 @@ class _HomePageState extends State<HomePage> {
         _busy = false;
       });
     }
+  }
+
+  void _setResult(String method, Map<String, dynamic> result) {
+    setState(() {
+      _lastMethod = method;
+      _lastResult = result;
+      _jsonResult = const JsonEncoder.withIndent('  ').convert(result);
+    });
+  }
+
+  Future<void> _downloadJson() async {
+    if (_jsonResult.isEmpty) {
+      setState(() {
+        _status = 'No JSON output available to download';
+      });
+      return;
+    }
+    try {
+      final downloadDir = _defaultDownloadDirectory();
+      if (!downloadDir.existsSync()) {
+        downloadDir.createSync(recursive: true);
+      }
+      final stamp = DateTime.now().toIso8601String().replaceAll(':', '-');
+      final method = _lastMethod.isEmpty ? 'result' : _lastMethod;
+      final file = File('${downloadDir.path}${Platform.pathSeparator}pohualli-$method-$stamp.json');
+      file.writeAsStringSync(_jsonResult);
+      setState(() {
+        _status = 'Saved JSON to ${file.path}';
+      });
+    } catch (e) {
+      setState(() {
+        _status = 'Failed to save JSON: $e';
+      });
+    }
+  }
+
+  Directory _defaultDownloadDirectory() {
+    if (Platform.isWindows) {
+      final userProfile = Platform.environment['USERPROFILE'];
+      if (userProfile != null && userProfile.isNotEmpty) {
+        return Directory('$userProfile\\Downloads');
+      }
+    }
+    final home = Platform.environment['HOME'];
+    if (home != null && home.isNotEmpty) {
+      return Directory('$home/Downloads');
+    }
+    return Directory.current;
   }
 
   int? _requiredInt(String raw, {required String field}) {
@@ -293,7 +374,29 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Pohualli Desktop (Flutter + RPC)')),
+      appBar: AppBar(
+        title: const Text('Pohualli Desktop (Flutter + RPC)'),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<ThemeMode>(
+                value: widget.themeMode,
+                onChanged: (value) {
+                  if (value != null) {
+                    widget.onThemeModeChanged(value);
+                  }
+                },
+                items: const [
+                  DropdownMenuItem(value: ThemeMode.system, child: Text('Theme: System')),
+                  DropdownMenuItem(value: ThemeMode.light, child: Text('Theme: Light')),
+                  DropdownMenuItem(value: ThemeMode.dark, child: Text('Theme: Dark')),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: SingleChildScrollView(
@@ -397,23 +500,7 @@ class _HomePageState extends State<HomePage> {
               const SizedBox(height: 12),
               Text(_status),
               const SizedBox(height: 12),
-              SizedBox(
-                height: 320,
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF6F3EE),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: SingleChildScrollView(
-                    child: SelectableText(
-                      _result.isEmpty ? 'No result yet.' : _result,
-                      style: const TextStyle(fontFamily: 'monospace'),
-                    ),
-                  ),
-                ),
-              ),
+              _buildResultPanel(),
             ],
           ),
         ),
@@ -421,12 +508,231 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  Widget _buildResultPanel() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.45),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                _lastMethod.isEmpty ? 'Results' : 'Results: ${_prettyMethod(_lastMethod)}',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const Spacer(),
+              FilterChip(
+                selected: _showJson,
+                onSelected: (selected) {
+                  setState(() {
+                    _showJson = selected;
+                  });
+                },
+                label: const Text('Show JSON'),
+              ),
+              const SizedBox(width: 8),
+              OutlinedButton.icon(
+                onPressed: _jsonResult.isEmpty ? null : _downloadJson,
+                icon: const Icon(Icons.download),
+                label: const Text('Download JSON'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          SizedBox(
+            height: 340,
+            child: _buildResultBody(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildResultBody() {
+    if (_lastResult == null) {
+      return const Center(child: Text('No result yet.'));
+    }
+    if (_showJson) {
+      return SingleChildScrollView(
+        child: SelectableText(
+          _jsonResult,
+          style: const TextStyle(fontFamily: 'monospace'),
+        ),
+      );
+    }
+
+    switch (_lastMethod) {
+      case 'convert':
+        return _buildConvertResult(_lastResult!);
+      case 'derive_autocorr':
+        return _buildDeriveResult(_lastResult!);
+      case 'search_range':
+        return _buildRangeResult(_lastResult!);
+      case 'list_correlations':
+        return _buildCorrelationsResult(_lastResult!);
+      default:
+        return const SingleChildScrollView(
+          child: Text('Unsupported result type, switch to JSON view.'),
+        );
+    }
+  }
+
+  Widget _buildConvertResult(Map<String, dynamic> result) {
+    final composite = result['composite'];
+    if (composite is! Map<String, dynamic>) {
+      return const Text('Unexpected convert response format.');
+    }
+
+    final items = <MapEntry<String, String>>[
+      MapEntry('JDN', '${composite['jdn'] ?? ''}'),
+      MapEntry('Gregorian Date', '${composite['gregorian_date'] ?? ''}'),
+      MapEntry('Tzolkin', '${composite['tzolkin_value'] ?? ''} ${composite['tzolkin_name'] ?? ''}'),
+      MapEntry('Haab', '${composite['haab_day'] ?? ''} ${composite['haab_month_name'] ?? ''}'),
+      MapEntry('Long Count', '${composite['long_count'] ?? ''}'),
+      MapEntry('Year Bearer', '${composite['year_bearer_name'] ?? ''} ${composite['year_bearer_value'] ?? ''}'),
+      MapEntry('Direction/Color', '${composite['dir_color_str'] ?? ''}'),
+      MapEntry('ISO Weekday', '${composite['iso_weekday'] ?? ''}'),
+    ];
+
+    return GridView.count(
+      crossAxisCount: 2,
+      childAspectRatio: 3.2,
+      crossAxisSpacing: 8,
+      mainAxisSpacing: 8,
+      children: items
+          .map(
+            (item) => Card(
+              margin: EdgeInsets.zero,
+              child: Padding(
+                padding: const EdgeInsets.all(10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(item.key, style: Theme.of(context).textTheme.labelMedium),
+                    const SizedBox(height: 4),
+                    Text(item.value, maxLines: 2, overflow: TextOverflow.ellipsis),
+                  ],
+                ),
+              ),
+            ),
+          )
+          .toList(),
+    );
+  }
+
+  Widget _buildDeriveResult(Map<String, dynamic> result) {
+    final autocorr = result['autocorr'];
+    if (autocorr is! Map<String, dynamic>) {
+      return const Text('Unexpected derive response format.');
+    }
+
+    final entries = autocorr.entries.toList();
+    return SingleChildScrollView(
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: entries
+            .map(
+              (entry) => Chip(
+                label: Text('${entry.key}: ${entry.value}'),
+              ),
+            )
+            .toList(),
+      ),
+    );
+  }
+
+  Widget _buildRangeResult(Map<String, dynamic> result) {
+    final count = result['count'];
+    final scanned = result['scanned'];
+    final fields = (result['fields'] as List?)?.map((e) => e.toString()).toList() ?? <String>[];
+    final rows = (result['rows'] as List?)?.whereType<Map>().toList() ?? <Map>[];
+
+    if (fields.isEmpty || rows.isEmpty) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Matches: $count | Scanned: $scanned'),
+          const SizedBox(height: 12),
+          const Text('No matching rows.'),
+        ],
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Matches: $count | Scanned: $scanned'),
+        const SizedBox(height: 10),
+        Expanded(
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: SingleChildScrollView(
+              child: DataTable(
+                columns: fields.map((field) => DataColumn(label: Text(field))).toList(),
+                rows: rows.take(100).map((rawRow) {
+                  final row = rawRow.cast<dynamic, dynamic>();
+                  return DataRow(
+                    cells: fields
+                        .map((field) => DataCell(Text('${row[field] ?? ''}')))
+                        .toList(),
+                  );
+                }).toList(),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCorrelationsResult(Map<String, dynamic> result) {
+    final presets = (result['presets'] as List?)?.whereType<Map>().toList() ?? <Map>[];
+    if (presets.isEmpty) {
+      return const Text('No presets available.');
+    }
+
+    return ListView.separated(
+      itemCount: presets.length,
+      separatorBuilder: (_, __) => const Divider(height: 1),
+      itemBuilder: (context, index) {
+        final preset = presets[index].cast<dynamic, dynamic>();
+        return ListTile(
+          title: Text('${preset['name'] ?? ''}'),
+          subtitle: Text('${preset['description'] ?? ''}'),
+          trailing: Text('New Era: ${preset['new_era'] ?? ''}'),
+        );
+      },
+    );
+  }
+
+  String _prettyMethod(String method) {
+    switch (method) {
+      case 'convert':
+        return 'Convert';
+      case 'derive_autocorr':
+        return 'Derive Auto-Corrections';
+      case 'search_range':
+        return 'Search Range';
+      case 'list_correlations':
+        return 'Correlation Presets';
+      default:
+        return method;
+    }
+  }
+
   Widget _buildSection({required String title, required Widget child}) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: const Color(0xFFF1EEE8),
+        color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Column(
