@@ -30,6 +30,23 @@ For tags `v*.*.*`, the Flutter Desktop workflow publishes:
 - macOS unsigned zip (`PohualliDesktop-<version>-macOS-unsigned.zip`) when secrets are missing
 - Windows zip (`PohualliDesktop-<version>-windows.zip`)
 
+Direct download links by release tag:
+
+- Generic pattern:
+  `https://github.com/muscariello/pohualli-python/releases/download/<tag>/<file.zip>`
+- macOS signed:
+  `https://github.com/muscariello/pohualli-python/releases/download/<tag>/PohualliDesktop-<version>-macOS.zip`
+- macOS unsigned:
+  `https://github.com/muscariello/pohualli-python/releases/download/<tag>/PohualliDesktop-<version>-macOS-unsigned.zip`
+- Windows:
+  `https://github.com/muscariello/pohualli-python/releases/download/<tag>/PohualliDesktop-<version>-windows.zip`
+
+Example for `v0.4.0`:
+
+- `https://github.com/muscariello/pohualli-python/releases/download/v0.4.0/file.zip`
+- `https://github.com/muscariello/pohualli-python/releases/download/v0.4.0/PohualliDesktop-0.4.0-macOS.zip`
+- `https://github.com/muscariello/pohualli-python/releases/download/v0.4.0/PohualliDesktop-0.4.0-windows.zip`
+
 ## macOS First Run
 
 If you install an unsigned build:

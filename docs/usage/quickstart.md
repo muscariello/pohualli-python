@@ -36,6 +36,15 @@ print(compute_composite(2451545).tzolkin_name)
 pohualli-rpc
 ```
 
-## 5. Configuration
+## 5. Flutter Desktop UI
+
+```bash
+cd flutter/pohualli_desktop
+flutter pub get
+flutter run -d macos
+# or: flutter run -d windows
+```
+
+## 6. Configuration
 
 Adjust New Era or year bearer reference via query params or CLI flags.
