@@ -27,12 +27,12 @@ Issues = "https://github.com/muscariello/pohualli-python/issues"
 
 [project.optional-dependencies]
 # Pin coverage to a version that properly supports Python 3.13 frame evaluation
-dev = ["pytest","pytest-cov","coverage>=7.6.0","briefcase>=0.3.20"]
-web = ["fastapi","uvicorn","jinja2","httpx"]
+dev = ["pytest","pytest-cov","coverage>=7.6.0"]
 docs = ["mkdocs>=1.6.0","mkdocs-material>=9.5.0","mkdocs-gen-files","mkdocs-literate-nav","mkdocs-section-index"]
 
 [project.scripts]
 pohualli = "pohualli.cli:main"
+pohualli-rpc = "pohualli.rpc:main"
 
 [build-system]
 requires = ["setuptools>=67"]
@@ -45,45 +45,13 @@ include-package-data = true
 include = ["pohualli*"]
 exclude = ["tests*"]
 
-[tool.setuptools.package-data]
-"pohualli" = ["templates/*.html"]
-
 [tool.coverage.run]
 branch = true
 source = ["pohualli"]
 concurrency = ["thread"]
-# Enable thread coverage so FastAPI TestClient & uvicorn threads (webapp, desktop_app) are tracked.
+# Enable thread coverage for threaded execution paths.
 parallel = true
 
 [tool.coverage.report]
 show_missing = true
 skip_covered = false
-
-# Briefcase application packaging configuration
-[tool.briefcase]
-project_name = "Pohualli"
-bundle = "io.github.muscariello"
-url = "https://github.com/muscariello/pohualli-python"
-license.file = "LICENSE"
-author = "Port Maintainers"
-
-[tool.briefcase.app.pohualli]
-formal_name = "Pohualli"
-description = "Mesoamerican calendar utility (Maya and Aztec calendrics)."
-version = "0.3.1"
-sources = ["pohualli"]
-main_module = "pohualli.desktop_app"
-requires = [
-	"fastapi",
-	"uvicorn",
-	"jinja2"
-]
-
-[tool.briefcase.app.pohualli.macOS]
-requires = []
-
-[tool.briefcase.app.pohualli.windows]
-requires = []
-
-[tool.briefcase.app.pohualli.linux]
-requires = []

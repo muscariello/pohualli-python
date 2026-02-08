@@ -1,0 +1,336 @@
+name: Flutter Desktop
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+    tags: [ 'v*.*.*' ]
+    paths:
+      - 'flutter/pohualli_desktop/**'
+      - 'pohualli/**'
+      - 'scripts/rpc_entry.py'
+      - 'pyproject.toml'
+      - '.github/workflows/flutter-desktop.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'flutter/pohualli_desktop/**'
+      - 'pohualli/**'
+      - 'scripts/rpc_entry.py'
+      - 'pyproject.toml'
+      - '.github/workflows/flutter-desktop.yml'
+
+jobs:
+  build:
+    name: Build Flutter Desktop (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Build self-contained RPC backend (macOS)
+        if: matrix.os == 'macos-latest'
+        working-directory: .
+        run: |
+          uv pip install --system -e . pyinstaller
+          mkdir -p backend-dist
+          pyinstaller --clean --noconfirm --onefile \
+            --name pohualli-rpc-bin \
+            --paths "$GITHUB_WORKSPACE" \
+            --hidden-import pohualli \
+            --hidden-import pohualli.rpc \
+            --collect-submodules pohualli \
+            scripts/rpc_entry.py
+          cp dist/pohualli-rpc-bin backend-dist/pohualli-rpc-bin
+          chmod +x backend-dist/pohualli-rpc-bin
+
+      - name: Build self-contained RPC backend (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        working-directory: .
+        run: |
+          uv pip install --system -e . pyinstaller
+          if (-not (Test-Path backend-dist)) { New-Item -ItemType Directory -Path backend-dist | Out-Null }
+          pyinstaller --clean --noconfirm --onefile `
+            --name pohualli-rpc-bin `
+            --paths "$env:GITHUB_WORKSPACE" `
+            --hidden-import pohualli `
+            --hidden-import pohualli.rpc `
+            --collect-submodules pohualli `
+            scripts/rpc_entry.py
+          Copy-Item "dist/pohualli-rpc-bin.exe" "backend-dist/pohualli-rpc-bin.exe" -Force
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Enable desktop platforms (macOS)
+        if: matrix.os == 'macos-latest'
+        working-directory: flutter/pohualli_desktop
+        run: flutter config --enable-macos-desktop
+
+      - name: Enable desktop platforms (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        working-directory: flutter/pohualli_desktop
+        run: flutter config --enable-windows-desktop
+
+      - name: Generate desktop host files (macOS)
+        if: matrix.os == 'macos-latest'
+        working-directory: flutter/pohualli_desktop
+        run: flutter create . --platforms=macos
+
+      - name: Generate desktop host files (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        working-directory: flutter/pohualli_desktop
+        run: flutter create . --platforms=windows
+
+      - name: Install dependencies
+        working-directory: flutter/pohualli_desktop
+        run: flutter pub get
+
+      - name: Analyze
+        working-directory: flutter/pohualli_desktop
+        run: flutter analyze
+
+      - name: Test
+        working-directory: flutter/pohualli_desktop
+        run: flutter test --coverage
+
+      - name: Upload Flutter coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: flutter-coverage-${{ matrix.os }}
+          path: flutter/pohualli_desktop/coverage/lcov.info
+          if-no-files-found: error
+
+      - name: Build macOS app
+        if: matrix.os == 'macos-latest'
+        working-directory: flutter/pohualli_desktop
+        run: flutter build macos --release
+
+      - name: Build Windows app
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        working-directory: flutter/pohualli_desktop
+        run: flutter build windows --release
+
+      - name: Inject RPC backend into macOS app
+        if: matrix.os == 'macos-latest'
+        working-directory: flutter/pohualli_desktop
+        run: |
+          cp "$GITHUB_WORKSPACE/backend-dist/pohualli-rpc-bin" build/macos/Build/Products/Release/pohualli_desktop.app/Contents/MacOS/pohualli-rpc-bin
+          chmod +x build/macos/Build/Products/Release/pohualli_desktop.app/Contents/MacOS/pohualli-rpc-bin
+
+      - name: Smoke test bundled backend (macOS)
+        if: matrix.os == 'macos-latest'
+        working-directory: flutter/pohualli_desktop
+        run: |
+          python - <<'PY'
+          import json
+          import subprocess
+
+          exe = "build/macos/Build/Products/Release/pohualli_desktop.app/Contents/MacOS/pohualli-rpc-bin"
+          proc = subprocess.Popen([exe], stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True)
+          assert proc.stdin and proc.stdout
+          proc.stdin.write(json.dumps({"jsonrpc":"2.0","id":1,"method":"health","params":{}}) + "\n")
+          proc.stdin.write(json.dumps({"jsonrpc":"2.0","id":2,"method":"quit","params":{}}) + "\n")
+          proc.stdin.flush()
+          r1 = json.loads(proc.stdout.readline().strip())
+          r2 = json.loads(proc.stdout.readline().strip())
+          proc.wait(timeout=10)
+          assert r1["result"]["status"] == "ok"
+          assert r2["result"]["status"] == "bye"
+          print("Bundled backend smoke test passed (macOS)")
+          PY
+
+      - name: Inject RPC backend into Windows app
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        working-directory: flutter/pohualli_desktop
+        run: |
+          Copy-Item "$env:GITHUB_WORKSPACE/backend-dist/pohualli-rpc-bin.exe" "build/windows/x64/runner/Release/pohualli-rpc-bin.exe" -Force
+
+      - name: Smoke test bundled backend (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        working-directory: flutter/pohualli_desktop
+        run: |
+          $script = @'
+          import json
+          import subprocess
+
+          exe = r"build/windows/x64/runner/Release/pohualli-rpc-bin.exe"
+          proc = subprocess.Popen([exe], stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True)
+          proc.stdin.write(json.dumps({"jsonrpc":"2.0","id":1,"method":"health","params":{}}) + "\n")
+          proc.stdin.write(json.dumps({"jsonrpc":"2.0","id":2,"method":"quit","params":{}}) + "\n")
+          proc.stdin.flush()
+          r1 = json.loads(proc.stdout.readline().strip())
+          r2 = json.loads(proc.stdout.readline().strip())
+          proc.wait(timeout=10)
+          assert r1["result"]["status"] == "ok"
+          assert r2["result"]["status"] == "bye"
+          print("Bundled backend smoke test passed (Windows)")
+          '@
+          python -c $script
+
+      - name: Prepare macOS app bundle
+        if: matrix.os == 'macos-latest'
+        working-directory: flutter/pohualli_desktop
+        run: |
+          mkdir -p dist
+          cp -R build/macos/Build/Products/Release/pohualli_desktop.app dist/PohualliDesktop.app
+
+      - name: Check notarization configuration
+        id: notarization_config
+        if: matrix.os == 'macos-latest'
+        env:
+          APPLE_SIGNING_CERT_BASE64: ${{ secrets.APPLE_SIGNING_CERT_BASE64 }}
+          APPLE_SIGNING_CERT_PASSWORD: ${{ secrets.APPLE_SIGNING_CERT_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          set -euo pipefail
+          if [ -n "${APPLE_SIGNING_CERT_BASE64:-}" ] && [ -n "${APPLE_SIGNING_CERT_PASSWORD:-}" ] && [ -n "${APPLE_SIGNING_IDENTITY:-}" ] && [ -n "${APPLE_ID:-}" ] && [ -n "${APPLE_APP_SPECIFIC_PASSWORD:-}" ] && [ -n "${APPLE_TEAM_ID:-}" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+            echo "Notarization is enabled."
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "Notarization secrets missing; continuing with unsigned macOS artifact."
+          fi
+
+      - name: Sign and notarize macOS app (optional)
+        id: notarize_macos
+        if: matrix.os == 'macos-latest' && steps.notarization_config.outputs.enabled == 'true'
+        working-directory: flutter/pohualli_desktop
+        env:
+          APPLE_SIGNING_CERT_BASE64: ${{ secrets.APPLE_SIGNING_CERT_BASE64 }}
+          APPLE_SIGNING_CERT_PASSWORD: ${{ secrets.APPLE_SIGNING_CERT_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_KEYCHAIN_PASSWORD: ${{ secrets.APPLE_KEYCHAIN_PASSWORD }}
+        run: |
+          set -euo pipefail
+          echo "notarized=false" >> "$GITHUB_OUTPUT"
+
+          CERT_PATH="$RUNNER_TEMP/apple_signing_cert.p12"
+          KEYCHAIN_PATH="$RUNNER_TEMP/app-signing.keychain-db"
+          KEYCHAIN_PASSWORD="${APPLE_KEYCHAIN_PASSWORD:-temp_keychain_password}"
+
+          echo "$APPLE_SIGNING_CERT_BASE64" | base64 --decode > "$CERT_PATH"
+
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security list-keychains -d user -s "$KEYCHAIN_PATH"
+          security import "$CERT_PATH" -k "$KEYCHAIN_PATH" -P "$APPLE_SIGNING_CERT_PASSWORD" -T /usr/bin/codesign -T /usr/bin/security
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+          /usr/bin/codesign --force --deep --options runtime --timestamp --sign "$APPLE_SIGNING_IDENTITY" dist/PohualliDesktop.app
+          /usr/bin/codesign --verify --deep --strict --verbose=2 dist/PohualliDesktop.app
+
+          ditto -c -k --keepParent dist/PohualliDesktop.app dist/PohualliDesktop-notarize.zip
+          xcrun notarytool submit dist/PohualliDesktop-notarize.zip --apple-id "$APPLE_ID" --password "$APPLE_APP_SPECIFIC_PASSWORD" --team-id "$APPLE_TEAM_ID" --wait
+          xcrun stapler staple dist/PohualliDesktop.app
+          spctl --assess --type exec -v dist/PohualliDesktop.app
+
+          echo "notarized=true" >> "$GITHUB_OUTPUT"
+
+      - name: Ad-hoc sign macOS app (fallback)
+        if: matrix.os == 'macos-latest' && steps.notarization_config.outputs.enabled != 'true'
+        working-directory: flutter/pohualli_desktop
+        run: |
+          set -euo pipefail
+          /usr/bin/codesign --force --deep --sign - dist/PohualliDesktop.app
+          /usr/bin/codesign --verify --deep --strict --verbose=2 dist/PohualliDesktop.app
+
+      - name: Package macOS artifact
+        if: matrix.os == 'macos-latest'
+        working-directory: flutter/pohualli_desktop
+        run: |
+          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            VERSION="${GITHUB_REF_NAME#v}"
+          elif [ -n "${{ github.event.pull_request.number }}" ]; then
+            VERSION="pr-${{ github.event.pull_request.number }}"
+          else
+            VERSION="sha-${GITHUB_SHA::7}"
+          fi
+          if [ "${{ steps.notarization_config.outputs.enabled }}" = "true" ] && [ "${{ steps.notarize_macos.outputs.notarized }}" = "true" ]; then
+            ditto -c -k --keepParent dist/PohualliDesktop.app "dist/PohualliDesktop-${VERSION}-macOS.zip"
+          else
+            ditto -c -k --keepParent dist/PohualliDesktop.app "dist/PohualliDesktop-${VERSION}-macOS-unsigned.zip"
+          fi
+
+      - name: Package Windows artifact
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        working-directory: flutter/pohualli_desktop
+        run: |
+          if (-not (Test-Path dist)) { New-Item -ItemType Directory -Path dist | Out-Null }
+          if ($env:GITHUB_REF -like 'refs/tags/v*') {
+            $version = $env:GITHUB_REF_NAME.Substring(1)
+          } elseif ('${{ github.event.pull_request.number }}' -ne '') {
+            $version = 'pr-${{ github.event.pull_request.number }}'
+          } else {
+            $version = "sha-$($env:GITHUB_SHA.Substring(0, 7))"
+          }
+          Compress-Archive -Path build/windows/x64/runner/Release/* -DestinationPath "dist/PohualliDesktop-$version-windows.zip" -Force
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: flutter-desktop-${{ matrix.os }}
+          path: |
+            flutter/pohualli_desktop/dist/PohualliDesktop-*-macOS*.zip
+            flutter/pohualli_desktop/dist/PohualliDesktop-*-windows.zip
+          if-no-files-found: error
+
+  publish-release-assets:
+    name: Publish Flutter Desktop Assets
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Show downloaded artifacts
+        run: ls -R artifacts
+
+      - name: Attach Flutter desktop assets to Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          files: |
+            artifacts/**/PohualliDesktop-*-macOS*.zip
+            artifacts/**/PohualliDesktop-*-windows.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

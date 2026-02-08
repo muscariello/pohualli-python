@@ -1,73 +1,43 @@
-# Desktop Bundles
+# Desktop Apps
 
-This project can be packaged into a native-like desktop application using **Briefcase**. The desktop build launches the FastAPI web interface locally and opens your default browser.
+Pohualli desktop UI is implemented with Flutter and uses the Python JSON-RPC backend.
 
-## Why Briefcase?
-- Produces platform‑specific bundles (.app on macOS, MSI/exe on Windows, AppImage/Flatpak/Snap options on Linux)
-- Uses a Python runtime isolated from any system install
-- Keeps a clean separation between source and distributable artifacts
+## Architecture
 
-## Added Launcher
-The module `pohualli/desktop_app.py` is the Briefcase entry point. It:
-1. Finds a free local port
-2. Starts the FastAPI app via Uvicorn
-3. Opens the system default browser to the local URL
+- Frontend: `flutter/pohualli_desktop`
+- Backend process: `pohualli-rpc` (bundled as `pohualli-rpc-bin` in release artifacts)
+- Build workflow: `.github/workflows/flutter-desktop.yml`
 
-## Prerequisites
-Install development extras (includes Briefcase):
+## Local Development
+
 ```bash
-pip install -e .[dev,web]
+cd flutter/pohualli_desktop
+flutter pub get
+flutter run -d macos      # or: flutter run -d windows
 ```
-(Or use `pipx install briefcase` if you prefer a global Briefcase.)
 
-## Install Options Summary
-- PyPI (library + CLI): `pip install pohualli` (add `[web]` for UI)
-- Desktop bundle (macOS/Windows): download artifact from CI or Release and run the app directly (no Python needed)
+If host platform folders are missing, generate them:
 
-Latest release downloads: https://github.com/muscariello/pohualli-python/releases
-
-macOS first-run approval (unsigned/ad-hoc): Control-click the app, choose Open, then confirm. Subsequent launches are normal.
-
-Windows SmartScreen: Click “More info” → “Run anyway” if warned (unsigned build).
-
-## Build Steps (macOS / Linux)
 ```bash
-briefcase create   # Generate platform project structure
-briefcase build    # Build the distributable bundle
-briefcase run      # Launch the packaged app
+flutter create . --platforms=macos,windows
 ```
-Artifacts appear under `build/` and `dist/`.
 
-## Windows Notes
-On Windows the steps are identical. To produce an MSI installer you can then run:
-```bash
-briefcase package
-```
-(Signing the installer requires a code signing certificate—optional but recommended for SmartScreen reputation.)
+## Release Artifacts
 
-## Updating the App
-After changing code:
-```bash
-briefcase build
-briefcase run
-```
-If dependencies (or briefcase config) changed, re-run `briefcase create` first.
+For tags `v*.*.*`, the Flutter Desktop workflow publishes:
 
-## Data Files / Templates
-Templates (`pohualli/templates/*.html`) are included by packaging metadata. The Briefcase bundle uses the installed package so no extra step is required.
+- macOS zip (`PohualliDesktop-<version>-macOS.zip`) when notarization secrets are set
+- macOS unsigned zip (`PohualliDesktop-<version>-macOS-unsigned.zip`) when secrets are missing
+- Windows zip (`PohualliDesktop-<version>-windows.zip`)
 
-## Troubleshooting
-| Issue | Fix |
-|-------|-----|
-| Browser does not open | Navigate manually to the printed http://127.0.0.1:<port> |
-| Port in use | The launcher selects a free ephemeral port; rare collisions can be solved by re-running |
-| Missing templates | Ensure editable install with `-e .` before building, or clean previous build directories |
-| Uvicorn not found | Confirm `web` extra installed (`pip install -e .[web]`) |
+## macOS First Run
 
-## Alternative: Single Executable
-If you only need a CLI binary, consider `pyinstaller --onefile pohualli/cli.py` (faster build). Briefcase is preferred for a cohesive multi-platform experience.
+If you install an unsigned build:
 
-## Next Steps
-- Optional: add code signing / notarization instructions
-- Optional: add a system tray wrapper or electron shell (out of scope for now)
+1. Move `PohualliDesktop.app` to `/Applications` (optional).
+2. Control-click the app and select Open.
+3. Confirm Open in the Gatekeeper dialog.
 
+## Windows First Run
+
+If SmartScreen warns on unsigned binaries, select More info and Run anyway.

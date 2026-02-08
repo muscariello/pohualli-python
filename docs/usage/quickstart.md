@@ -10,14 +10,10 @@ PyPI (CLI & library):
 ```bash
 pip install pohualli
 ```
-With web UI extras:
-```bash
-pip install "pohualli[web]"
-```
-Desktop App (macOS / Windows): download bundle artifact from a Release (no Python needed). First macOS run: Control-click → Open.
+Desktop app (macOS / Windows): download bundle artifact from a Release (no Python needed). First macOS run: Control-click -> Open.
 From source (dev):
 ```bash
-pip install -e .[dev,web,docs]
+pip install -e .[dev,docs]
 ```
 
 ## 2. CLI
@@ -34,11 +30,10 @@ from pohualli import compute_composite
 print(compute_composite(2451545).tzolkin_name)
 ```
 
-## 4. Web UI
+## 4. RPC Backend (for Flutter)
 
 ```bash
-uvicorn pohualli.webapp:app --reload
-# open http://127.0.0.1:8000
+pohualli-rpc
 ```
 
 ## 5. Configuration

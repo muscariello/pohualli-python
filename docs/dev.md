@@ -5,7 +5,7 @@
 ```bash
 python -m venv .venv
 source .venv/bin/activate
-pip install -e .[dev,web,docs]
+pip install -e .[dev,docs]
 ```
 
 ## Tests
@@ -20,4 +20,4 @@ pytest -q
 mkdocs serve
 ```
 
-Open http://127.0.0.1:8000 (web UI) or http://127.0.0.1:8001 (if mkdocs shows different port in output).
+Open the URL printed by MkDocs (typically http://127.0.0.1:8000).

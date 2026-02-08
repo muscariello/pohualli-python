@@ -12,12 +12,12 @@ Pohualli is a Python port of a classic Turbo Pascal calendrical tool focused on 
 - Moon age / eclipse possibility heuristics
 - Zodiac degrees & names
 - Configurable correction offsets & new era
-- JSON composite API & FastAPI web UI
+- JSON-RPC backend for Flutter desktop UI
 
 ## Install
 
 ```bash
-pip install -e .[web]
+pip install -e .[dev]
 ```
 
 Or just core:
