@@ -9,7 +9,12 @@ void main() {
 }
 
 class PohualliDesktopApp extends StatefulWidget {
-  const PohualliDesktopApp({super.key});
+  const PohualliDesktopApp({
+    super.key,
+    this.autoConnectBridge = true,
+  });
+
+  final bool autoConnectBridge;
 
   @override
   State<PohualliDesktopApp> createState() => _PohualliDesktopAppState();
@@ -35,6 +40,7 @@ class _PohualliDesktopAppState extends State<PohualliDesktopApp> {
         useMaterial3: true,
       ),
       home: HomePage(
+        autoConnectBridge: widget.autoConnectBridge,
         themeMode: _themeMode,
         onThemeModeChanged: (mode) {
           setState(() {
@@ -49,10 +55,12 @@ class _PohualliDesktopAppState extends State<PohualliDesktopApp> {
 class HomePage extends StatefulWidget {
   const HomePage({
     super.key,
+    required this.autoConnectBridge,
     required this.themeMode,
     required this.onThemeModeChanged,
   });
 
+  final bool autoConnectBridge;
   final ThemeMode themeMode;
   final ValueChanged<ThemeMode> onThemeModeChanged;
 
@@ -84,6 +92,15 @@ class _HomePageState extends State<HomePage> {
   String _jsonResult = '';
   String _lastMethod = '';
   Map<String, dynamic>? _lastResult;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.autoConnectBridge) {
+      // Keep the bridge up by default; users should not need to manage connection state.
+      Future<void>.microtask(_startBridge);
+    }
+  }
 
   @override
   void dispose() {
@@ -127,10 +144,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _convert() async {
-    if (_rpc == null) {
-      setState(() {
-        _status = 'Bridge is not running';
-      });
+    if (!await _ensureBridge()) {
       return;
     }
     final jdn = _requiredInt(_convertJdnController.text, field: 'Convert JDN');
@@ -167,10 +181,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _deriveAutoCorr() async {
-    if (_rpc == null) {
-      setState(() {
-        _status = 'Bridge is not running';
-      });
+    if (!await _ensureBridge()) {
       return;
     }
     final jdn = _requiredInt(_deriveJdnController.text, field: 'Derive JDN');
@@ -212,10 +223,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _searchRange() async {
-    if (_rpc == null) {
-      setState(() {
-        _status = 'Bridge is not running';
-      });
+    if (!await _ensureBridge()) {
       return;
     }
     final start = _requiredInt(_rangeStartController.text, field: 'Range start');
@@ -263,10 +271,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _listCorrelations() async {
-    if (_rpc == null) {
-      setState(() {
-        _status = 'Bridge is not running';
-      });
+    if (!await _ensureBridge()) {
       return;
     }
     setState(() {
@@ -296,6 +301,14 @@ class _HomePageState extends State<HomePage> {
       _lastResult = result;
       _jsonResult = const JsonEncoder.withIndent('  ').convert(result);
     });
+  }
+
+  Future<bool> _ensureBridge() async {
+    if (_rpc != null) {
+      return true;
+    }
+    await _startBridge();
+    return _rpc != null;
   }
 
   Future<void> _downloadJson() async {
@@ -408,10 +421,6 @@ class _HomePageState extends State<HomePage> {
                 runSpacing: 8,
                 crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
-                  FilledButton(
-                    onPressed: _busy ? null : _startBridge,
-                    child: const Text('Start RPC Bridge'),
-                  ),
                   OutlinedButton(
                     onPressed: _busy ? null : _listCorrelations,
                     child: const Text('List Correlations'),
