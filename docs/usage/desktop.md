@@ -43,9 +43,14 @@ Direct download links by release tag:
 
 Example for `v0.4.0`:
 
-- `https://github.com/muscariello/pohualli-python/releases/download/v0.4.0/file.zip`
-- `https://github.com/muscariello/pohualli-python/releases/download/v0.4.0/PohualliDesktop-0.4.0-macOS.zip`
-- `https://github.com/muscariello/pohualli-python/releases/download/v0.4.0/PohualliDesktop-0.4.0-windows.zip`
+- [Generic example file](https://github.com/muscariello/pohualli-python/releases/download/v0.4.0/file.zip)
+- [macOS unsigned zip](https://github.com/muscariello/pohualli-python/releases/download/v0.4.0/PohualliDesktop-0.4.0-macOS-unsigned.zip)
+- [Windows zip](https://github.com/muscariello/pohualli-python/releases/download/v0.4.0/PohualliDesktop-0.4.0-windows.zip)
+
+Current bundles:
+
+- [Download macOS bundle (unsigned)](https://github.com/muscariello/pohualli-python/releases/download/v0.4.0/PohualliDesktop-0.4.0-macOS-unsigned.zip)
+- [Download Windows bundle](https://github.com/muscariello/pohualli-python/releases/download/v0.4.0/PohualliDesktop-0.4.0-windows.zip)
 
 ## macOS First Run
 
