@@ -54,7 +54,7 @@ jobs:
 
       - name: Build package
         run: |
-          uv run -- python -m build
+          python -m build
 
       - name: Upload dist artifacts (single version)
         # Only publish artifacts for pushes to main or tag refs (not PRs)

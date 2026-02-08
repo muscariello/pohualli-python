@@ -45,7 +45,7 @@ jobs:
 
       - name: Build dist (sdist & wheel)
         run: |
-          uv run -- python -m build
+          python -m build
           ls -l dist
 
       - name: Publish to PyPI
