@@ -201,7 +201,13 @@ jobs:
         if: matrix.os == 'macos-latest'
         working-directory: flutter/pohualli_desktop
         run: |
-          VERSION="${GITHUB_REF_NAME:-${GITHUB_SHA::7}}"
+          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            VERSION="${GITHUB_REF_NAME#v}"
+          elif [ -n "${{ github.event.pull_request.number }}" ]; then
+            VERSION="pr-${{ github.event.pull_request.number }}"
+          else
+            VERSION="sha-${GITHUB_SHA::7}"
+          fi
           if [ "${{ steps.notarization_config.outputs.enabled }}" = "true" ] && [ "${{ steps.notarize_macos.outputs.notarized }}" = "true" ]; then
             ditto -c -k --keepParent dist/PohualliDesktop.app "dist/PohualliDesktop-${VERSION}-macOS.zip"
           else
@@ -214,7 +220,13 @@ jobs:
         working-directory: flutter/pohualli_desktop
         run: |
           if (-not (Test-Path dist)) { New-Item -ItemType Directory -Path dist | Out-Null }
-          $version = if ($env:GITHUB_REF_NAME) { $env:GITHUB_REF_NAME } else { $env:GITHUB_SHA.Substring(0, 7) }
+          if ($env:GITHUB_REF -like 'refs/tags/v*') {
+            $version = $env:GITHUB_REF_NAME.Substring(1)
+          } elseif ('${{ github.event.pull_request.number }}' -ne '') {
+            $version = 'pr-${{ github.event.pull_request.number }}'
+          } else {
+            $version = "sha-$($env:GITHUB_SHA.Substring(0, 7))"
+          }
           Compress-Archive -Path build/windows/x64/runner/Release/* -DestinationPath "dist/PohualliDesktop-$version-windows.zip" -Force
 
       - name: Upload artifacts
