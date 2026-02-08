@@ -492,30 +492,49 @@ class RpcBridge {
   bool _closed = false;
 
   static Future<RpcBridge> start({String executable = 'pohualli-rpc'}) async {
-    final resolvedExecutable = _resolveBackendExecutable(executable);
-    final process = await Process.start(resolvedExecutable, []);
-    return RpcBridge._(process);
+    final candidates = _candidateBackendExecutables(executable);
+    final errors = <String>[];
+    for (final candidate in candidates) {
+      try {
+        final process = await Process.start(candidate, []);
+        return RpcBridge._(process);
+      } catch (e) {
+        errors.add('$candidate -> $e');
+      }
+    }
+    throw StateError(
+      'Unable to start RPC backend. Tried ${candidates.join(", ")}. Errors: ${errors.join(" | ")}',
+    );
   }
 
-  static String _resolveBackendExecutable(String fallbackExecutable) {
+  static List<String> _candidateBackendExecutables(String fallbackExecutable) {
     final exePath = Platform.resolvedExecutable;
     final exeDir = File(exePath).parent.path;
+    final out = <String>[];
 
     if (Platform.isMacOS) {
       final bundled = '$exeDir/pohualli-rpc-bin';
       if (File(bundled).existsSync()) {
-        return bundled;
+        out.add(bundled);
       }
     }
     if (Platform.isWindows) {
       final bundled = '$exeDir\\pohualli-rpc-bin.exe';
       if (File(bundled).existsSync()) {
-        return bundled;
+        out.add(bundled);
+      }
+      // Future-proof for a potential subfolder packaging layout.
+      final bundledSubdir = '$exeDir\\backend\\pohualli-rpc-bin.exe';
+      if (File(bundledSubdir).existsSync()) {
+        out.add(bundledSubdir);
       }
     }
 
     // Development fallback: use PATH-installed command.
-    return fallbackExecutable;
+    if (!out.contains(fallbackExecutable)) {
+      out.add(fallbackExecutable);
+    }
+    return out;
   }
 
   Future<Map<String, dynamic>> call(String method, Map<String, dynamic> params) {

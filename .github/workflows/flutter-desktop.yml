@@ -124,12 +124,57 @@ jobs:
           cp "$GITHUB_WORKSPACE/backend-dist/pohualli-rpc-bin" build/macos/Build/Products/Release/pohualli_desktop.app/Contents/MacOS/pohualli-rpc-bin
           chmod +x build/macos/Build/Products/Release/pohualli_desktop.app/Contents/MacOS/pohualli-rpc-bin
 
+      - name: Smoke test bundled backend (macOS)
+        if: matrix.os == 'macos-latest'
+        working-directory: flutter/pohualli_desktop
+        run: |
+          python - <<'PY'
+          import json
+          import subprocess
+
+          exe = "build/macos/Build/Products/Release/pohualli_desktop.app/Contents/MacOS/pohualli-rpc-bin"
+          proc = subprocess.Popen([exe], stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True)
+          assert proc.stdin and proc.stdout
+          proc.stdin.write(json.dumps({"jsonrpc":"2.0","id":1,"method":"health","params":{}}) + "\n")
+          proc.stdin.write(json.dumps({"jsonrpc":"2.0","id":2,"method":"quit","params":{}}) + "\n")
+          proc.stdin.flush()
+          r1 = json.loads(proc.stdout.readline().strip())
+          r2 = json.loads(proc.stdout.readline().strip())
+          proc.wait(timeout=10)
+          assert r1["result"]["status"] == "ok"
+          assert r2["result"]["status"] == "bye"
+          print("Bundled backend smoke test passed (macOS)")
+          PY
+
       - name: Inject RPC backend into Windows app
         if: matrix.os == 'windows-latest'
         shell: pwsh
         working-directory: flutter/pohualli_desktop
         run: |
           Copy-Item "$env:GITHUB_WORKSPACE/backend-dist/pohualli-rpc-bin.exe" "build/windows/x64/runner/Release/pohualli-rpc-bin.exe" -Force
+
+      - name: Smoke test bundled backend (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        working-directory: flutter/pohualli_desktop
+        run: |
+          $script = @'
+          import json
+          import subprocess
+
+          exe = r"build/windows/x64/runner/Release/pohualli-rpc-bin.exe"
+          proc = subprocess.Popen([exe], stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True)
+          proc.stdin.write(json.dumps({"jsonrpc":"2.0","id":1,"method":"health","params":{}}) + "\n")
+          proc.stdin.write(json.dumps({"jsonrpc":"2.0","id":2,"method":"quit","params":{}}) + "\n")
+          proc.stdin.flush()
+          r1 = json.loads(proc.stdout.readline().strip())
+          r2 = json.loads(proc.stdout.readline().strip())
+          proc.wait(timeout=10)
+          assert r1["result"]["status"] == "ok"
+          assert r2["result"]["status"] == "bye"
+          print("Bundled backend smoke test passed (Windows)")
+          '@
+          python -c $script
 
       - name: Prepare macOS app bundle
         if: matrix.os == 'macos-latest'
