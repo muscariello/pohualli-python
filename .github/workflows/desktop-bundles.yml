@@ -30,16 +30,58 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -e '.[dev,web]'
 
-      - name: Create bundle project
-        run: briefcase create
-
-      - name: Build bundle
-        run: briefcase build
-
-      - name: Package (if supported)
+      - name: Smoke test RPC bridge
+        shell: bash
         run: |
-          echo "Attempting package step"
-          briefcase package --adhoc-sign --no-input || echo "Package step not implemented for this platform"
+          python - <<'PY'
+          import json
+          import subprocess
+          import sys
+
+          proc = subprocess.Popen(
+              [sys.executable, "-m", "pohualli.rpc"],
+              stdin=subprocess.PIPE,
+              stdout=subprocess.PIPE,
+              text=True,
+          )
+          assert proc.stdin is not None
+          assert proc.stdout is not None
+          proc.stdin.write(json.dumps({"jsonrpc":"2.0","id":1,"method":"health","params":{}}) + "\n")
+          proc.stdin.write(json.dumps({"jsonrpc":"2.0","id":2,"method":"quit","params":{}}) + "\n")
+          proc.stdin.flush()
+          line1 = proc.stdout.readline().strip()
+          line2 = proc.stdout.readline().strip()
+          proc.wait(timeout=10)
+          r1 = json.loads(line1)
+          r2 = json.loads(line2)
+          assert r1["result"]["status"] == "ok"
+          assert r2["result"]["status"] == "bye"
+          print("RPC smoke test passed")
+          PY
+
+      - name: Create bundle project (macOS)
+        if: matrix.os == 'macos-latest'
+        run: briefcase create macOS
+
+      - name: Build bundle (macOS)
+        if: matrix.os == 'macos-latest'
+        run: briefcase build macOS
+
+      - name: Package bundle (macOS)
+        if: matrix.os == 'macos-latest'
+        run: briefcase package macOS --adhoc-sign --no-input
+
+      - name: Create bundle project (Windows)
+        if: matrix.os == 'windows-latest'
+        run: briefcase create windows
+
+      - name: Build bundle (Windows)
+        if: matrix.os == 'windows-latest'
+        run: briefcase build windows
+
+      - name: Package bundle (Windows)
+        if: matrix.os == 'windows-latest'
+        run: briefcase package windows
 
       - name: Prepare release asset (macOS)
         if: matrix.os == 'macos-latest'
@@ -96,7 +138,7 @@ jobs:
               VERSION="sha-${GITHUB_SHA::7}"
             fi
           fi
-            MSI_ORIG=$(ls dist/*.msi 2>/dev/null | head -n1 || true)
+          MSI_ORIG=$(ls dist/*.msi 2>/dev/null | head -n1 || true)
           if [ -n "$MSI_ORIG" ]; then
             cp "$MSI_ORIG" "dist/Pohualli-${VERSION}-windows.msi"
           else
@@ -141,5 +183,4 @@ jobs:
             artifacts/**/Pohualli-*-windows.msi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
 

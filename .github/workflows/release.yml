@@ -90,7 +90,35 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           # dev includes briefcase, web for FastAPI runtime
-            python -m pip install -e '.[dev,web]'
+          python -m pip install -e '.[dev,web]'
+
+      - name: Smoke test RPC bridge
+        run: |
+          python - <<'PY'
+          import json
+          import subprocess
+          import sys
+
+          proc = subprocess.Popen(
+              [sys.executable, "-m", "pohualli.rpc"],
+              stdin=subprocess.PIPE,
+              stdout=subprocess.PIPE,
+              text=True,
+          )
+          assert proc.stdin is not None
+          assert proc.stdout is not None
+          proc.stdin.write(json.dumps({"jsonrpc":"2.0","id":1,"method":"health","params":{}}) + "\n")
+          proc.stdin.write(json.dumps({"jsonrpc":"2.0","id":2,"method":"quit","params":{}}) + "\n")
+          proc.stdin.flush()
+          line1 = proc.stdout.readline().strip()
+          line2 = proc.stdout.readline().strip()
+          proc.wait(timeout=10)
+          r1 = json.loads(line1)
+          r2 = json.loads(line2)
+          assert r1["result"]["status"] == "ok"
+          assert r2["result"]["status"] == "bye"
+          print("RPC smoke test passed")
+          PY
 
       - name: Build macOS app with Briefcase
         run: |
@@ -147,6 +175,35 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install -e '.[dev,web]'
+
+      - name: Smoke test RPC bridge
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $script = @'
+          import json
+          import subprocess
+          import sys
+
+          proc = subprocess.Popen(
+              [sys.executable, "-m", "pohualli.rpc"],
+              stdin=subprocess.PIPE,
+              stdout=subprocess.PIPE,
+              text=True,
+          )
+          proc.stdin.write(json.dumps({"jsonrpc":"2.0","id":1,"method":"health","params":{}}) + "\n")
+          proc.stdin.write(json.dumps({"jsonrpc":"2.0","id":2,"method":"quit","params":{}}) + "\n")
+          proc.stdin.flush()
+          line1 = proc.stdout.readline().strip()
+          line2 = proc.stdout.readline().strip()
+          proc.wait(timeout=10)
+          r1 = json.loads(line1)
+          r2 = json.loads(line2)
+          assert r1["result"]["status"] == "ok"
+          assert r2["result"]["status"] == "bye"
+          print("RPC smoke test passed")
+          '@
+          python -c $script
 
       - name: Build Windows app with Briefcase
         shell: pwsh

@@ -67,7 +67,17 @@ Templates (`pohualli/templates/*.html`) are included by packaging metadata. The 
 ## Alternative: Single Executable
 If you only need a CLI binary, consider `pyinstaller --onefile pohualli/cli.py` (faster build). Briefcase is preferred for a cohesive multi-platform experience.
 
+## Alternative: Native UI (Flutter + JSON-RPC)
+If you want a real native UI for macOS/Windows without embedding a browser, run:
+```bash
+pohualli-rpc
+```
+Then communicate with the process using newline-delimited JSON-RPC over stdin/stdout. This avoids local HTTP and is suitable for Flutter desktop process bridges.
+
+A separate Flutter desktop scaffold is included at `flutter/pohualli_desktop`, with CI builds in `.github/workflows/flutter-desktop.yml`.
+For tag builds (`v*.*.*`), that workflow attaches Flutter macOS/Windows zip assets to the corresponding GitHub Release.
+If Apple notarization secrets are present in GitHub Actions, the macOS Flutter artifact is signed and notarized; otherwise a clearly named unsigned macOS zip is emitted.
+
 ## Next Steps
 - Optional: add code signing / notarization instructions
 - Optional: add a system tray wrapper or electron shell (out of scope for now)
-

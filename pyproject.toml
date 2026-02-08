@@ -33,6 +33,7 @@ docs = ["mkdocs>=1.6.0","mkdocs-material>=9.5.0","mkdocs-gen-files","mkdocs-lite
 
 [project.scripts]
 pohualli = "pohualli.cli:main"
+pohualli-rpc = "pohualli.rpc:main"
 
 [build-system]
 requires = ["setuptools>=67"]

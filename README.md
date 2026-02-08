@@ -198,6 +198,38 @@ uvicorn pohualli.webapp:app --reload
 ```
 Open http://127.0.0.1:8000
 
+## Flutter/Desktop RPC Bridge (Option B)
+Use the stdio JSON-RPC bridge instead of running FastAPI:
+```
+pohualli-rpc
+```
+Send one JSON request per line on stdin; each line gets one JSON response on stdout.
+
+Example requests:
+```json
+{"jsonrpc":"2.0","id":1,"method":"health","params":{}}
+{"jsonrpc":"2.0","id":2,"method":"convert","params":{"jdn":2451545,"culture":"maya"}}
+{"jsonrpc":"2.0","id":3,"method":"search_range","params":{"start":2451545,"end":2451600,"limit":3}}
+{"jsonrpc":"2.0","id":4,"method":"quit","params":{}}
+```
+
+Supported methods:
+- `health`
+- `list_correlations`
+- `convert`
+- `derive_autocorr`
+- `search_range`
+- `quit`
+
+Flutter desktop frontend scaffold (macOS + Windows) lives in:
+- `flutter/pohualli_desktop`
+  - Release artifacts include bundled backend executable (`pohualli-rpc-bin`), so they are self-contained.
+
+CI workflow for Flutter desktop builds:
+- `.github/workflows/flutter-desktop.yml`
+  - On `v*.*.*` tags, Flutter macOS/Windows zip artifacts are also attached to the GitHub Release.
+  - macOS builds are notarized when Apple signing secrets are configured; otherwise an `-unsigned` macOS zip is published.
+
 ## Docker
 ```
 docker build -t pohualli .
