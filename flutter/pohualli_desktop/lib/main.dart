@@ -26,7 +26,7 @@ class _PohualliDesktopAppState extends State<PohualliDesktopApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Pohualli Desktop',
+      title: 'Pohualli',
       themeMode: _themeMode,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFFB35C00)),
@@ -534,7 +534,7 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Pohualli Desktop (Flutter + RPC)'),
+        title: const Text('Pohualli'),
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 12),
