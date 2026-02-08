@@ -21,25 +21,26 @@ jobs:
         uses: actions/setup-python@v5
         with:
             python-version: ${{ matrix.python-version }}
-            cache: 'pip'
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
 
-      - name: Install dependencies (editable for accurate coverage paths)
+      - name: Install dependencies with uv (editable for accurate coverage paths)
         run: |
-          python -m pip install --upgrade pip
-          python -m pip install -e '.[dev,web]'
-          python -m pip install build
+          uv pip install --system -e '.[dev,web]' build
 
       - name: Run tests (coverage on 3.12 only)
         run: |
           if [ "${{ matrix.python-version }}" = "3.12" ]; then \
-            coverage run -m pytest -q; \
+            python -m coverage run -m pytest -q; \
             echo "Listing raw coverage data files (parallel mode)"; \
             ls -1 .coverage* || true; \
-            coverage combine || true; \
-            coverage report -m; \
-            coverage xml; \
+            python -m coverage combine || true; \
+            python -m coverage report -m; \
+            python -m coverage xml; \
           else \
-            pytest -q; \
+            python -m pytest -q; \
           fi
 
       - name: Upload coverage to Codecov
@@ -53,7 +54,7 @@ jobs:
 
       - name: Build package
         run: |
-          python -m build
+          uv run -- python -m build
 
       - name: Upload dist artifacts (single version)
         # Only publish artifacts for pushes to main or tag refs (not PRs)

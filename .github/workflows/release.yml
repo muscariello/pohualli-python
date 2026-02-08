@@ -21,7 +21,10 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-          cache: 'pip'
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
 
       - name: Validate tag matches pyproject version
         id: validate_version
@@ -37,14 +40,12 @@ jobs:
           fi
           echo "Version match confirmed."
 
-      - name: Install build tooling
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install build
+      - name: Install build tooling with uv
+        run: uv pip install --system build
 
       - name: Build dist (sdist & wheel)
         run: |
-          python -m build
+          uv run -- python -m build
           ls -l dist
 
       - name: Publish to PyPI
@@ -84,13 +85,13 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-          cache: 'pip'
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
 
-      - name: Install briefcase & project deps
-        run: |
-          python -m pip install --upgrade pip
-          # dev includes briefcase, web for FastAPI runtime
-          python -m pip install -e '.[dev,web]'
+      - name: Install briefcase & project deps with uv
+        run: uv pip install --system -e '.[dev,web]'
 
       - name: Smoke test RPC bridge
         run: |
@@ -169,12 +170,13 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-          cache: 'pip'
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
 
-      - name: Install briefcase & project deps
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install -e '.[dev,web]'
+      - name: Install briefcase & project deps with uv
+        run: uv pip install --system -e '.[dev,web]'
 
       - name: Smoke test RPC bridge
         shell: pwsh

@@ -40,15 +40,16 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-          cache: 'pip'
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
 
       - name: Build self-contained RPC backend (macOS)
         if: matrix.os == 'macos-latest'
         working-directory: .
         run: |
-          python -m pip install --upgrade pip
-          python -m pip install -e .
-          python -m pip install pyinstaller
+          uv pip install --system -e . pyinstaller
           mkdir -p backend-dist
           pyinstaller --clean --noconfirm --onefile \
             --name pohualli-rpc-bin \
@@ -65,9 +66,7 @@ jobs:
         shell: pwsh
         working-directory: .
         run: |
-          python -m pip install --upgrade pip
-          python -m pip install -e .
-          python -m pip install pyinstaller
+          uv pip install --system -e . pyinstaller
           if (-not (Test-Path backend-dist)) { New-Item -ItemType Directory -Path backend-dist | Out-Null }
           pyinstaller --clean --noconfirm --onefile `
             --name pohualli-rpc-bin `
@@ -116,7 +115,14 @@ jobs:
 
       - name: Test
         working-directory: flutter/pohualli_desktop
-        run: flutter test
+        run: flutter test --coverage
+
+      - name: Upload Flutter coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: flutter-coverage-${{ matrix.os }}
+          path: flutter/pohualli_desktop/coverage/lcov.info
+          if-no-files-found: error
 
       - name: Build macOS app
         if: matrix.os == 'macos-latest'

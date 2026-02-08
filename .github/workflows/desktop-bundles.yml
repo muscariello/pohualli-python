@@ -23,12 +23,14 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-          cache: 'pip'
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
 
-      - name: Install dependencies (dev + web)
+      - name: Install dependencies with uv (dev + web)
         run: |
-          python -m pip install --upgrade pip
-          python -m pip install -e '.[dev,web]'
+          uv pip install --system -e '.[dev,web]'
 
       - name: Smoke test RPC bridge
         shell: bash
@@ -183,4 +185,3 @@ jobs:
             artifacts/**/Pohualli-*-windows.msi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
