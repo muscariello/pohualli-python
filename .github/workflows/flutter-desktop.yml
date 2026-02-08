@@ -50,7 +50,13 @@ jobs:
           python -m pip install -e .
           python -m pip install pyinstaller
           mkdir -p backend-dist
-          pyinstaller --clean --noconfirm --onefile --name pohualli-rpc-bin scripts/rpc_entry.py
+          pyinstaller --clean --noconfirm --onefile \
+            --name pohualli-rpc-bin \
+            --paths "$GITHUB_WORKSPACE" \
+            --hidden-import pohualli \
+            --hidden-import pohualli.rpc \
+            --collect-submodules pohualli \
+            scripts/rpc_entry.py
           cp dist/pohualli-rpc-bin backend-dist/pohualli-rpc-bin
           chmod +x backend-dist/pohualli-rpc-bin
 
@@ -63,7 +69,13 @@ jobs:
           python -m pip install -e .
           python -m pip install pyinstaller
           if (-not (Test-Path backend-dist)) { New-Item -ItemType Directory -Path backend-dist | Out-Null }
-          pyinstaller --clean --noconfirm --onefile --name pohualli-rpc-bin scripts/rpc_entry.py
+          pyinstaller --clean --noconfirm --onefile `
+            --name pohualli-rpc-bin `
+            --paths "$env:GITHUB_WORKSPACE" `
+            --hidden-import pohualli `
+            --hidden-import pohualli.rpc `
+            --collect-submodules pohualli `
+            scripts/rpc_entry.py
           Copy-Item "dist/pohualli-rpc-bin.exe" "backend-dist/pohualli-rpc-bin.exe" -Force
 
       - name: Set up Flutter
